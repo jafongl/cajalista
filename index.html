@@ -1,0 +1,640 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#064e3b">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="CajaLista">
+<title>CajaLista</title>
+<link rel="manifest" href="manifest.json">
+
+<!-- 1. Supabase carga PRIMERO como script bloqueante -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+
+<!-- 2. Fuentes -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+
+<style>
+/* ── RESET ── */
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+html,body{height:100%;font-family:'DM Sans',sans-serif;background:#f3f4f6;color:#111827;overflow:hidden;}
+
+/* ── SCREENS ── */
+.screen{display:none;height:100dvh;overflow-y:auto;}
+.screen.active{display:flex;flex-direction:column;}
+
+/* ══ AUTH ══ */
+#auth{background:#064e3b;justify-content:center;align-items:center;padding:1.5rem;}
+.auth-inner{width:100%;max-width:380px;}
+.auth-logo{text-align:center;margin-bottom:2rem;}
+.auth-logo-box{width:68px;height:68px;background:rgba(255,255,255,0.15);border-radius:18px;display:inline-flex;align-items:center;justify-content:center;font-size:30px;margin-bottom:0.75rem;}
+.auth-logo h1{font-size:26px;font-weight:300;color:#fff;letter-spacing:-0.5px;}
+.auth-logo h1 b{font-weight:600;}
+.auth-logo p{font-size:13px;color:rgba(255,255,255,0.55);margin-top:3px;}
+.auth-card{background:#fff;border-radius:20px;padding:1.5rem;}
+.tabs{display:flex;background:#f3f4f6;border-radius:10px;padding:3px;margin-bottom:1.25rem;}
+.tab{flex:1;padding:0.5rem;border:none;background:transparent;border-radius:8px;font-size:13px;font-weight:500;color:#6b7280;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s;}
+.tab.on{background:#fff;color:#111827;box-shadow:0 1px 4px rgba(0,0,0,.1);}
+.lbl{display:block;font-size:12px;font-weight:500;color:#6b7280;margin-bottom:4px;}
+.inp{width:100%;padding:.7rem .875rem;border:1.5px solid #e5e7eb;border-radius:8px;font-size:15px;font-family:'DM Sans',sans-serif;color:#111827;outline:none;margin-bottom:.875rem;background:#fff;}
+.inp:focus{border-color:#10b981;}
+.btn{width:100%;padding:.875rem;background:#064e3b;color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:500;font-family:'DM Sans',sans-serif;cursor:pointer;margin-top:.25rem;}
+.btn:active{opacity:.85;}
+.btn:disabled{opacity:.5;cursor:not-allowed;}
+.err{font-size:12px;color:#dc2626;text-align:center;margin-top:.625rem;min-height:16px;}
+.auth-foot{font-size:11px;color:rgba(255,255,255,.45);text-align:center;margin-top:.875rem;}
+
+/* ══ APP ══ */
+#app{background:#f3f4f6;}
+.hdr{background:#064e3b;padding:1rem 1.25rem 0;flex-shrink:0;}
+.hdr-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:1.25rem;}
+.brand{display:flex;align-items:center;gap:8px;}
+.brand-icon{width:30px;height:30px;background:rgba(255,255,255,.15);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:15px;}
+.brand-name{font-size:17px;font-weight:300;color:#fff;}
+.brand-name b{font-weight:600;}
+.hdr-right{display:flex;align-items:center;gap:8px;}
+.date-tag{font-size:11px;color:rgba(255,255,255,.6);background:rgba(255,255,255,.1);padding:3px 10px;border-radius:20px;}
+.logout-btn{width:30px;height:30px;border-radius:50%;background:rgba(255,255,255,.1);border:none;color:rgba(255,255,255,.8);font-size:14px;cursor:pointer;}
+.balance-wrap{padding:0 0 1.5rem;}
+.bal-lbl{font-size:10px;color:rgba(255,255,255,.55);text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px;}
+.bal-num{font-size:38px;font-weight:300;color:#fff;letter-spacing:-1px;margin-bottom:.875rem;}
+.bal-num sup{font-size:18px;font-weight:300;opacity:.65;margin-right:1px;}
+.mini-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.mini{background:rgba(255,255,255,.1);border-radius:10px;padding:.625rem .875rem;}
+.mini-lbl{font-size:10px;color:rgba(255,255,255,.55);text-transform:uppercase;letter-spacing:.05em;margin-bottom:2px;}
+.mini-val{font-size:15px;font-weight:500;}
+.mini-val.g{color:#6ee7b7;}
+.mini-val.r{color:#fca5a5;}
+
+/* Nav */
+.nav{display:flex;background:#fff;border-bottom:1px solid #e5e7eb;flex-shrink:0;}
+.ntab{flex:1;padding:.75rem .5rem;border:none;background:transparent;font-family:'DM Sans',sans-serif;font-size:11px;font-weight:500;color:#9ca3af;cursor:pointer;border-bottom:2px solid transparent;display:flex;flex-direction:column;align-items:center;gap:3px;transition:all .15s;}
+.ntab span{font-size:18px;}
+.ntab.on{color:#065f46;border-bottom-color:#10b981;}
+
+/* Tab panels */
+.panel{display:none;flex:1;overflow-y:auto;padding:1rem 1.25rem;}
+.panel.on{display:block;}
+
+/* Cards */
+.sec-hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:.625rem;}
+.sec-ttl{font-size:13px;font-weight:500;}
+.sec-lnk{font-size:12px;color:#065f46;cursor:pointer;}
+.card{background:#fff;border:1px solid #e5e7eb;border-radius:12px;}
+
+/* Quick actions */
+.qa-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:1.25rem;}
+.qa{border:1px solid #e5e7eb;border-radius:12px;padding:.875rem;display:flex;flex-direction:column;gap:5px;cursor:pointer;background:#fff;}
+.qa:active{transform:scale(.97);}
+.qa.e{border-color:#a7f3d0;}
+.qa.s{border-color:#fecaca;}
+.qa-ico{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px;}
+.qa-ico.e{background:#ecfdf5;}
+.qa-ico.s{background:#fff1f2;}
+.qa-name{font-size:13px;font-weight:500;}
+.qa-desc{font-size:11px;color:#6b7280;}
+
+/* Chart */
+.chart-card{background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:.875rem;margin-bottom:1.25rem;}
+.chart-bars{height:68px;display:flex;align-items:flex-end;gap:3px;margin-bottom:5px;}
+.bg{flex:1;display:flex;gap:2px;align-items:flex-end;}
+.b{flex:1;border-radius:3px 3px 0 0;min-height:3px;}
+.b.i{background:#10b981;}
+.b.o{background:#fca5a5;}
+.chart-lbls{display:flex;}
+.cl{flex:1;font-size:10px;color:#9ca3af;text-align:center;}
+.legend{display:flex;gap:10px;margin-top:6px;}
+.leg{display:flex;align-items:center;gap:4px;font-size:11px;color:#6b7280;}
+.leg-dot{width:8px;height:8px;border-radius:2px;}
+
+/* TX items */
+.tx-empty{text-align:center;padding:2rem 1rem;color:#9ca3af;font-size:13px;border:1px dashed #e5e7eb;border-radius:12px;}
+.tx{display:flex;align-items:center;gap:10px;padding:.7rem .875rem;background:#fff;border:1px solid #e5e7eb;border-radius:12px;margin-bottom:5px;}
+.tx-ico{width:36px;height:36px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;}
+.tx-ico.i{background:#ecfdf5;}
+.tx-ico.o{background:#fff1f2;}
+.tx-info{flex:1;min-width:0;}
+.tx-name{font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.tx-meta{font-size:11px;color:#6b7280;}
+.tx-r{text-align:right;flex-shrink:0;}
+.tx-amt{font-size:14px;font-weight:500;}
+.tx-amt.i{color:#059669;}
+.tx-amt.o{color:#dc2626;}
+.tx-time{font-size:10px;color:#9ca3af;}
+
+/* Filters */
+.filters{display:flex;gap:5px;margin-bottom:.875rem;overflow-x:auto;padding-bottom:2px;}
+.fc{padding:4px 12px;border-radius:20px;border:1px solid #e5e7eb;background:#fff;font-size:12px;font-weight:500;color:#6b7280;cursor:pointer;white-space:nowrap;}
+.fc.on{background:#064e3b;color:#fff;border-color:#064e3b;}
+
+/* Reports */
+.rcard{background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:.875rem;margin-bottom:.875rem;}
+.rttl{font-size:11px;font-weight:500;color:#6b7280;text-transform:uppercase;letter-spacing:.05em;margin-bottom:.75rem;}
+.srow{display:flex;justify-content:space-between;padding:.4rem 0;border-bottom:1px solid #f3f4f6;}
+.srow:last-child{border:none;}
+.slbl{font-size:13px;color:#6b7280;}
+.sval{font-size:13px;font-weight:500;}
+.sval.p{color:#059669;}
+.sval.n{color:#dc2626;}
+.cbar{margin-bottom:.625rem;}
+.cbar-top{display:flex;justify-content:space-between;font-size:12px;color:#6b7280;margin-bottom:3px;}
+.cbar-track{height:5px;background:#f3f4f6;border-radius:3px;overflow:hidden;}
+.cbar-fill{height:100%;border-radius:3px;background:#10b981;}
+.cbar-fill.o{background:#fca5a5;}
+
+/* Modal */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:200;display:none;align-items:flex-end;justify-content:center;}
+.overlay.on{display:flex;}
+.modal{background:#fff;border-radius:22px 22px 0 0;padding:0 1.25rem 2rem;width:100%;max-width:480px;max-height:88dvh;overflow-y:auto;}
+.pill{width:36px;height:4px;background:#e5e7eb;border-radius:2px;margin:10px auto 1.25rem;}
+.modal-ttl{font-size:17px;font-weight:500;margin-bottom:1.25rem;}
+.type-row{display:flex;gap:6px;margin-bottom:1.25rem;}
+.tbtn{flex:1;padding:.6rem;border-radius:8px;border:1.5px solid #e5e7eb;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;cursor:pointer;background:#fff;color:#6b7280;}
+.tbtn.ti{border-color:#6ee7b7;background:#ecfdf5;color:#065f46;}
+.tbtn.to{border-color:#fca5a5;background:#fff1f2;color:#dc2626;}
+.amt-wrap{position:relative;margin-bottom:1rem;}
+.amt-pre{position:absolute;left:.875rem;top:50%;transform:translateY(-50%);font-size:20px;color:#9ca3af;}
+.amt-inp{width:100%;padding:.875rem .875rem .875rem 2rem;border:1.5px solid #e5e7eb;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:26px;font-weight:300;color:#111827;outline:none;background:#fff;}
+.amt-inp:focus{border-color:#10b981;}
+.cats{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;margin-bottom:1rem;}
+.cat{padding:.5rem .25rem;border:1px solid #e5e7eb;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:11px;font-weight:500;color:#6b7280;cursor:pointer;text-align:center;background:#fff;}
+.cat.ci{border-color:#6ee7b7;background:#ecfdf5;color:#065f46;}
+.cat.co{border-color:#fca5a5;background:#fff1f2;color:#dc2626;}
+.offline-bar{background:#fef3c7;border:1px solid #fcd34d;border-radius:8px;padding:.5rem .875rem;font-size:12px;color:#92400e;margin:.5rem 1.25rem 0;display:none;flex-shrink:0;}
+.offline-bar.on{display:block;}
+</style>
+</head>
+<body>
+
+<!-- ══ AUTH ══ -->
+<div class="screen active" id="auth">
+  <div class="auth-inner">
+    <div class="auth-logo">
+      <div class="auth-logo-box">💎</div>
+      <h1>Caja<b>Lista</b></h1>
+      <p>Flujo de efectivo simple para tu negocio</p>
+    </div>
+    <div class="auth-card">
+      <div class="tabs">
+        <button class="tab on" id="tab-login" onclick="setTab('login')">Iniciar sesión</button>
+        <button class="tab" id="tab-reg" onclick="setTab('reg')">Registrarse</button>
+      </div>
+      <label class="lbl">Correo electrónico</label>
+      <input class="inp" type="email" id="a-email" placeholder="tucorreo@gmail.com" autocomplete="email">
+      <label class="lbl">Contraseña</label>
+      <input class="inp" type="password" id="a-pass" placeholder="mínimo 6 caracteres" autocomplete="current-password">
+      <div id="name-wrap" style="display:none;">
+        <label class="lbl">Nombre del negocio</label>
+        <input class="inp" id="a-name" type="text" placeholder="Ej: Tienda Don Carlos">
+      </div>
+      <button class="btn" id="a-btn" onclick="doAuth()">Entrar</button>
+      <div class="err" id="a-err"></div>
+    </div>
+    <div class="auth-foot">Tus datos se guardan de forma segura 🔒</div>
+  </div>
+</div>
+
+<!-- ══ APP ══ -->
+<div class="screen" id="app">
+  <div class="hdr">
+    <div class="hdr-top">
+      <div class="brand">
+        <div class="brand-icon">💎</div>
+        <div class="brand-name">Caja<b>Lista</b></div>
+      </div>
+      <div class="hdr-right">
+        <div class="date-tag" id="h-date"></div>
+        <button class="logout-btn" onclick="doLogout()" title="Salir">↩</button>
+      </div>
+    </div>
+    <div class="balance-wrap">
+      <div class="bal-lbl">Saldo del día</div>
+      <div class="bal-num"><sup>$</sup><span id="b-bal">0.00</span></div>
+      <div class="mini-row">
+        <div class="mini"><div class="mini-lbl">↑ Entradas</div><div class="mini-val g" id="b-in">$0.00</div></div>
+        <div class="mini"><div class="mini-lbl">↓ Salidas</div><div class="mini-val r" id="b-out">$0.00</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="nav">
+    <button class="ntab on" onclick="goTab('home',this)"><span>🏠</span>Inicio</button>
+    <button class="ntab" onclick="goTab('hist',this)"><span>📋</span>Historial</button>
+    <button class="ntab" onclick="goTab('rep',this)"><span>📊</span>Reportes</button>
+  </div>
+
+  <div class="offline-bar" id="offline-bar">📵 Sin conexión — se sincronizará cuando vuelva la red.</div>
+
+  <!-- HOME -->
+  <div class="panel on" id="panel-home">
+    <div style="height:.875rem;"></div>
+    <div class="qa-grid">
+      <div class="qa e" onclick="openModal('in')">
+        <div class="qa-ico e">💰</div>
+        <div class="qa-name">Registrar entrada</div>
+        <div class="qa-desc">Venta, cobro, depósito</div>
+      </div>
+      <div class="qa s" onclick="openModal('out')">
+        <div class="qa-ico s">📤</div>
+        <div class="qa-name">Registrar salida</div>
+        <div class="qa-desc">Gasto, pago, compra</div>
+      </div>
+    </div>
+    <div class="sec-hdr"><span class="sec-ttl">Esta semana</span><span class="sec-lnk" onclick="goTabByName('rep')">ver reporte →</span></div>
+    <div class="chart-card">
+      <div class="chart-bars" id="c-bars"></div>
+      <div class="chart-lbls" id="c-lbls"></div>
+      <div class="legend">
+        <div class="leg"><div class="leg-dot" style="background:#10b981;"></div>Entradas</div>
+        <div class="leg"><div class="leg-dot" style="background:#fca5a5;"></div>Salidas</div>
+      </div>
+    </div>
+    <div class="sec-hdr"><span class="sec-ttl">Movimientos de hoy</span><span class="sec-lnk" onclick="goTabByName('hist')">ver todos →</span></div>
+    <div id="today-list"></div>
+    <div style="height:.875rem;"></div>
+  </div>
+
+  <!-- HISTORIAL -->
+  <div class="panel" id="panel-hist">
+    <div style="height:.875rem;"></div>
+    <div class="filters">
+      <div class="fc on" onclick="setFilter('all',this)">Todos</div>
+      <div class="fc" onclick="setFilter('in',this)">Entradas</div>
+      <div class="fc" onclick="setFilter('out',this)">Salidas</div>
+      <div class="fc" onclick="setFilter('today',this)">Hoy</div>
+      <div class="fc" onclick="setFilter('week',this)">Esta semana</div>
+    </div>
+    <div id="hist-list"></div>
+    <div style="height:.875rem;"></div>
+  </div>
+
+  <!-- REPORTES -->
+  <div class="panel" id="panel-rep">
+    <div style="height:.875rem;"></div>
+    <div id="rep-summary"></div>
+    <div id="rep-cats"></div>
+    <div style="height:.875rem;"></div>
+  </div>
+</div>
+
+<!-- ══ MODAL ══ -->
+<div class="overlay" id="overlay" onclick="closeOuter(event)">
+  <div class="modal">
+    <div class="pill"></div>
+    <div class="modal-ttl">Nuevo movimiento</div>
+    <div class="type-row">
+      <button class="tbtn" id="t-in"  onclick="setType('in')">💰 Entrada</button>
+      <button class="tbtn" id="t-out" onclick="setType('out')">📤 Salida</button>
+    </div>
+    <div class="amt-wrap">
+      <span class="amt-pre">$</span>
+      <input class="amt-inp" type="number" id="m-amt" placeholder="0.00" min="0" step="0.01" inputmode="decimal">
+    </div>
+    <label class="lbl">Descripción (opcional)</label>
+    <input class="inp" type="text" id="m-desc" placeholder="Ej: Venta de almuerzo...">
+    <label class="lbl" style="margin-bottom:6px;">Categoría</label>
+    <div class="cats" id="m-cats"></div>
+    <button class="btn" id="m-save" onclick="saveTx()">Guardar movimiento</button>
+  </div>
+</div>
+
+<script>
+// ══ SUPABASE INIT ══
+// La librería ya cargó en el <head> como script bloqueante
+const SB = window.supabase.createClient(
+  'https://lwnbjlcqxkoiirbsvcjr.supabase.co',
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx3bmJqbGNxeGtvaWlyYnN2Y2pyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzczMjYyMjUsImV4cCI6MjA5MjkwMjIyNX0.1zDOKyWR8BxY-Gs1T3NlM6O94frskVzZJQxdaq8E0Mc'
+);
+
+// ══ ESTADO ══
+let USER = null;
+let TXS  = [];
+let TYPE = 'in';
+let CAT  = '';
+let FILTER = 'all';
+
+const DIAS = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+const CATS = {
+  in:  [['🛍️','Ventas'],['🔧','Servicios'],['💵','Cobros'],['🏦','Préstamo'],['🎁','Otros']],
+  out: [['📦','Proveedores'],['💡','Servicios pub.'],['🏠','Alquiler'],['👥','Nómina'],['🚗','Transporte'],['📝','Otros']]
+};
+
+// ══ AUTH ══
+let authMode = 'login';
+function setTab(m) {
+  authMode = m;
+  document.getElementById('tab-login').className = 'tab' + (m==='login'?' on':'');
+  document.getElementById('tab-reg').className   = 'tab' + (m==='reg'?' on':'');
+  document.getElementById('name-wrap').style.display = m==='reg' ? 'block' : 'none';
+  document.getElementById('a-btn').textContent = m==='login' ? 'Entrar' : 'Crear cuenta';
+  document.getElementById('a-err').textContent = '';
+}
+
+async function doAuth() {
+  const email = document.getElementById('a-email').value.trim();
+  const pass  = document.getElementById('a-pass').value;
+  const name  = document.getElementById('a-name').value.trim();
+  const btn   = document.getElementById('a-btn');
+  const errEl = document.getElementById('a-err');
+  errEl.textContent = '';
+  if (!email || !pass) { errEl.textContent = 'Completa correo y contraseña.'; return; }
+  if (pass.length < 6) { errEl.textContent = 'La contraseña debe tener mínimo 6 caracteres.'; return; }
+  if (authMode === 'reg' && !name) { errEl.textContent = 'Escribe el nombre de tu negocio.'; return; }
+  btn.disabled = true; btn.textContent = '...';
+  try {
+    let res;
+    if (authMode === 'login') {
+      res = await SB.auth.signInWithPassword({ email, password: pass });
+    } else {
+      res = await SB.auth.signUp({ email, password: pass, options: { data: { business_name: name } } });
+    }
+    if (res.error) throw res.error;
+    USER = res.data.user || res.data.session?.user;
+    if (USER) {
+      await loadApp();
+    } else {
+      errEl.textContent = 'Revisa tu correo para confirmar tu cuenta.';
+    }
+  } catch(e) {
+    const msg = e.message || '';
+    if (msg.includes('Invalid login credentials')) errEl.textContent = 'Correo o contraseña incorrectos.';
+    else if (msg.includes('already registered')) errEl.textContent = 'Ese correo ya tiene cuenta. Inicia sesión.';
+    else errEl.textContent = msg || 'Error al conectar. Revisa tu internet.';
+  }
+  btn.disabled = false;
+  btn.textContent = authMode === 'login' ? 'Entrar' : 'Crear cuenta';
+}
+
+async function doLogout() {
+  await SB.auth.signOut();
+  USER = null; TXS = [];
+  show('auth');
+}
+
+// ══ LOAD APP ══
+async function loadApp() {
+  show('app');
+  document.getElementById('h-date').textContent =
+    new Date().toLocaleDateString('es-PA', {weekday:'short', day:'numeric', month:'short'});
+  await loadTxs();
+  renderAll();
+}
+
+function show(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+// ══ DATA ══
+async function loadTxs() {
+  if (!navigator.onLine) {
+    TXS = JSON.parse(localStorage.getItem('cc_txs') || '[]');
+    return;
+  }
+  const { data, error } = await SB.from('transactions')
+    .select('*').eq('user_id', USER.id).order('created_at', { ascending: false });
+  if (!error && data) {
+    TXS = data;
+    localStorage.setItem('cc_txs', JSON.stringify(TXS));
+  } else {
+    TXS = JSON.parse(localStorage.getItem('cc_txs') || '[]');
+  }
+}
+
+async function saveTx() {
+  const amt  = parseFloat(document.getElementById('m-amt').value);
+  const desc = document.getElementById('m-desc').value.trim();
+  if (!amt || amt <= 0) { document.getElementById('m-amt').focus(); return; }
+  const btn = document.getElementById('m-save');
+  btn.disabled = true; btn.textContent = 'Guardando...';
+  const tx = {
+    user_id:     USER.id,
+    type:        TYPE,
+    amount:      amt,
+    description: desc || CAT || (TYPE==='in' ? 'Entrada' : 'Salida'),
+    category:    CAT || 'Otros',
+    created_at:  new Date().toISOString()
+  };
+  if (navigator.onLine) {
+    const { data, error } = await SB.from('transactions').insert([tx]).select();
+    if (!error && data) tx.id = data[0].id;
+  } else {
+    tx.id = Date.now();
+    const pending = JSON.parse(localStorage.getItem('cc_pending') || '[]');
+    pending.push(tx);
+    localStorage.setItem('cc_pending', JSON.stringify(pending));
+  }
+  TXS.unshift(tx);
+  localStorage.setItem('cc_txs', JSON.stringify(TXS));
+  btn.disabled = false; btn.textContent = 'Guardar movimiento';
+  closeModal();
+  renderAll();
+}
+
+// ══ RENDER ══
+const fmt = n => '$' + Number(n).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+const today = () => new Date().toISOString().slice(0,10);
+
+function renderAll() {
+  renderBalances();
+  renderChart();
+  renderToday();
+  renderHist();
+  renderRep();
+}
+
+function renderBalances() {
+  const t = TXS.filter(x => x.created_at.slice(0,10) === today());
+  const inn = t.filter(x=>x.type==='in').reduce((s,x)=>s+Number(x.amount),0);
+  const out = t.filter(x=>x.type==='out').reduce((s,x)=>s+Number(x.amount),0);
+  document.getElementById('b-bal').textContent = (inn-out).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,',');
+  document.getElementById('b-in').textContent  = fmt(inn);
+  document.getElementById('b-out').textContent = fmt(out);
+}
+
+function renderChart() {
+  const days = [];
+  const now = new Date();
+  for (let i=6; i>=0; i--) {
+    const d = new Date(now); d.setDate(d.getDate()-i);
+    days.push({ ds: d.toISOString().slice(0,10), lbl: DIAS[d.getDay()], in:0, out:0 });
+  }
+  TXS.forEach(x => {
+    const d = days.find(d => d.ds === x.created_at.slice(0,10));
+    if (d) d[x.type] += Number(x.amount);
+  });
+  const mx = Math.max(...days.flatMap(d=>[d.in,d.out]), 1);
+  document.getElementById('c-bars').innerHTML = days.map(d =>
+    `<div class="bg"><div class="b i" style="height:${Math.round(d.in/mx*64)}px"></div><div class="b o" style="height:${Math.round(d.out/mx*64)}px"></div></div>`
+  ).join('');
+  document.getElementById('c-lbls').innerHTML = days.map(d=>`<div class="cl">${d.lbl}</div>`).join('');
+}
+
+function txHTML(tx) {
+  const catDef = CATS[tx.type]?.find(c=>c[1]===tx.category);
+  const ico = catDef ? catDef[0] : (tx.type==='in'?'💰':'📤');
+  const time = new Date(tx.created_at).toLocaleTimeString('es-PA',{hour:'2-digit',minute:'2-digit'});
+  const date = new Date(tx.created_at).toLocaleDateString('es-PA',{day:'numeric',month:'short'});
+  return `<div class="tx">
+    <div class="tx-ico ${tx.type}">${ico}</div>
+    <div class="tx-info">
+      <div class="tx-name">${tx.description}</div>
+      <div class="tx-meta">${tx.category} · ${date}</div>
+    </div>
+    <div class="tx-r">
+      <div class="tx-amt ${tx.type}">${tx.type==='in'?'+':'-'}${fmt(tx.amount)}</div>
+      <div class="tx-time">${time}</div>
+    </div>
+  </div>`;
+}
+
+function renderToday() {
+  const list = TXS.filter(x => x.created_at.slice(0,10) === today());
+  document.getElementById('today-list').innerHTML = list.length
+    ? list.slice(0,6).map(txHTML).join('')
+    : '<div class="tx-empty">Sin movimientos hoy aún.<br>¡Registra tu primera entrada!</div>';
+}
+
+function renderHist() {
+  let list = [...TXS];
+  if (FILTER==='in')    list = list.filter(x=>x.type==='in');
+  if (FILTER==='out')   list = list.filter(x=>x.type==='out');
+  if (FILTER==='today') list = list.filter(x=>x.created_at.slice(0,10)===today());
+  if (FILTER==='week')  {
+    const w = new Date(); w.setDate(w.getDate()-7);
+    list = list.filter(x=>new Date(x.created_at)>=w);
+  }
+  if (!list.length) { document.getElementById('hist-list').innerHTML='<div class="tx-empty">No hay movimientos con este filtro.</div>'; return; }
+  const groups = {};
+  list.forEach(x => {
+    const ds = x.created_at.slice(0,10);
+    if (!groups[ds]) groups[ds] = [];
+    groups[ds].push(x);
+  });
+  document.getElementById('hist-list').innerHTML = Object.entries(groups).map(([ds, txs]) => {
+    const d = new Date(ds + 'T12:00:00');
+    const lbl = ds===today() ? 'Hoy' : d.toLocaleDateString('es-PA',{weekday:'long',day:'numeric',month:'long'});
+    return `<div style="font-size:11px;font-weight:500;color:#9ca3af;text-transform:uppercase;letter-spacing:.05em;margin:.875rem 0 .5rem;">${lbl}</div>`
+      + txs.map(txHTML).join('');
+  }).join('');
+}
+
+function setFilter(f, el) {
+  FILTER = f;
+  document.querySelectorAll('.fc').forEach(c=>c.classList.remove('on'));
+  el.classList.add('on');
+  renderHist();
+}
+
+function renderRep() {
+  const now = new Date();
+  const ms = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+  const mt = TXS.filter(x=>x.created_at>=ms);
+  const mi = mt.filter(x=>x.type==='in').reduce((s,x)=>s+Number(x.amount),0);
+  const mo = mt.filter(x=>x.type==='out').reduce((s,x)=>s+Number(x.amount),0);
+  const w = new Date(); w.setDate(w.getDate()-7);
+  const wt = TXS.filter(x=>new Date(x.created_at)>=w);
+  const wi = wt.filter(x=>x.type==='in').reduce((s,x)=>s+Number(x.amount),0);
+  const wo = wt.filter(x=>x.type==='out').reduce((s,x)=>s+Number(x.amount),0);
+  document.getElementById('rep-summary').innerHTML = `<div class="rcard">
+    <div class="rttl">Resumen del mes</div>
+    <div class="srow"><span class="slbl">Total entradas</span><span class="sval p">${fmt(mi)}</span></div>
+    <div class="srow"><span class="slbl">Total salidas</span><span class="sval n">${fmt(mo)}</span></div>
+    <div class="srow"><span class="slbl">Balance neto</span><span class="sval ${mi-mo>=0?'p':'n'}">${fmt(mi-mo)}</span></div>
+    <div class="srow"><span class="slbl">Entradas esta semana</span><span class="sval p">${fmt(wi)}</span></div>
+    <div class="srow"><span class="slbl">Salidas esta semana</span><span class="sval n">${fmt(wo)}</span></div>
+    <div class="srow"><span class="slbl">Total movimientos</span><span class="sval">${TXS.length}</span></div>
+  </div>`;
+  const totals = {};
+  mt.forEach(x => {
+    const k = x.category+'_'+x.type;
+    if (!totals[k]) totals[k]={name:x.category,type:x.type,total:0};
+    totals[k].total += Number(x.amount);
+  });
+  const sorted = Object.values(totals).sort((a,b)=>b.total-a.total).slice(0,6);
+  const mx = Math.max(...sorted.map(c=>c.total),1);
+  document.getElementById('rep-cats').innerHTML = `<div class="rcard">
+    <div class="rttl">Por categoría (este mes)</div>
+    ${sorted.length ? sorted.map(c=>`<div class="cbar">
+      <div class="cbar-top"><span>${c.name}</span><span>${fmt(c.total)}</span></div>
+      <div class="cbar-track"><div class="cbar-fill${c.type==='out'?' o':''}" style="width:${Math.round(c.total/mx*100)}%"></div></div>
+    </div>`).join('') : '<div style="font-size:13px;color:#9ca3af;">Registra movimientos para ver el análisis.</div>'}
+  </div>`;
+}
+
+// ══ NAV ══
+function goTab(name, el) {
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('on'));
+  document.querySelectorAll('.ntab').forEach(t=>t.classList.remove('on'));
+  document.getElementById('panel-'+name).classList.add('on');
+  el.classList.add('on');
+  if (name==='hist') renderHist();
+  if (name==='rep')  renderRep();
+}
+function goTabByName(name) {
+  const tabs = document.querySelectorAll('.ntab');
+  const map = {home:0, hist:1, rep:2};
+  goTab(name, tabs[map[name]]);
+}
+
+// ══ MODAL ══
+function openModal(type) {
+  document.getElementById('m-amt').value = '';
+  document.getElementById('m-desc').value = '';
+  CAT = '';
+  setType(type);
+  document.getElementById('overlay').classList.add('on');
+  setTimeout(()=>document.getElementById('m-amt').focus(), 300);
+}
+function closeModal() { document.getElementById('overlay').classList.remove('on'); }
+function closeOuter(e) { if (e.target===document.getElementById('overlay')) closeModal(); }
+
+function setType(t) {
+  TYPE = t; CAT = '';
+  document.getElementById('t-in').className  = 'tbtn'+(t==='in'?' ti':'');
+  document.getElementById('t-out').className = 'tbtn'+(t==='out'?' to':'');
+  document.getElementById('m-cats').innerHTML = CATS[t].map(([ico,name])=>
+    `<div class="cat${CAT===name?(t==='in'?' ci':' co'):''}" onclick="pickCat('${name}')">${ico}<br>${name}</div>`
+  ).join('');
+}
+function pickCat(name) {
+  CAT = name;
+  document.querySelectorAll('.cat').forEach(c=>{
+    c.className = 'cat' + (c.textContent.includes(name) ? (TYPE==='in'?' ci':' co') : '');
+  });
+}
+
+// ══ OFFLINE ══
+window.addEventListener('online',  ()=>{ document.getElementById('offline-bar').classList.remove('on'); syncPending(); });
+window.addEventListener('offline', ()=>{ document.getElementById('offline-bar').classList.add('on'); });
+if (!navigator.onLine) document.getElementById('offline-bar').classList.add('on');
+
+async function syncPending() {
+  const pending = JSON.parse(localStorage.getItem('cc_pending')||'[]');
+  if (!pending.length) return;
+  for (const tx of pending) {
+    try { await SB.from('transactions').insert([tx]); } catch(e) { return; }
+  }
+  localStorage.removeItem('cc_pending');
+  await loadTxs(); renderAll();
+}
+
+// ══ SERVICE WORKER ══
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js').catch(()=>{});
+}
+
+// ══ ARRANCAR ══
+(async () => {
+  const { data } = await SB.auth.getSession();
+  if (data.session) {
+    USER = data.session.user;
+    await loadApp();
+  }
+})();
+</script>
+</body>
+</html>
