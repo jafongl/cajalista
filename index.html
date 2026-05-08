@@ -10,7 +10,9 @@
 <title>CajaLista</title>
 <link rel="manifest" href="manifest.json">
 
-<!-- 1. Supabase carga PRIMERO como script bloqueante -->
+<!-- 1. Variables de entorno por ambiente -->
+<script src="env.js"></script>
+<!-- 2. Supabase carga PRIMERO como script bloqueante -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 
 <!-- 2. Fuentes -->
@@ -371,10 +373,7 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:#f3f4f6;color:
 <script>
 // ══ SUPABASE INIT ══
 // La librería ya cargó en el <head> como script bloqueante
-const SB = window.supabase.createClient(
-  'https://lwnbjlcqxkoiirbsvcjr.supabase.co',
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx3bmJqbGNxeGtvaWlyYnN2Y2pyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzczMjYyMjUsImV4cCI6MjA5MjkwMjIyNX0.1zDOKyWR8BxY-Gs1T3NlM6O94frskVzZJQxdaq8E0Mc'
-);
+const SB = window.supabase.createClient(window.__SB_URL__, window.__SB_KEY__);
 
 // ══ ESTADO ══
 let USER = null;
