@@ -571,7 +571,7 @@ function renderBalances() {
   const bal = inn - out;
   document.getElementById('b-lbl').textContent = label;
   document.getElementById('b-bal').textContent = bal.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,',');
-  document.getElementById('b-bal').style.color  = bal < 0 ? '#fca5a5' : '#ffffff';
+  document.getElementById('b-bal').style.color  = bal < 0 ? '#fca5a5' : bal > 0 ? '#6ee7b7' : '#ffffff';
   document.getElementById('b-in').textContent  = fmt(inn);
   document.getElementById('b-out').textContent = fmt(out);
 }
