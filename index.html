@@ -838,9 +838,58 @@ async function syncPending() {
   await loadTxs(); renderAll();
 }
 
-// ══ SERVICE WORKER ══
+// ══ SERVICE WORKER con auto-update ══
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('sw.js').catch(()=>{});
+  navigator.serviceWorker.register('sw.js').then(reg => {
+
+    // Revisa si hay una versión nueva cada vez que abre la app
+    reg.addEventListener('updatefound', () => {
+      const newSW = reg.installing;
+      newSW.addEventListener('statechange', () => {
+        if (newSW.state === 'installed' && navigator.serviceWorker.controller) {
+          // Hay versión nueva lista — muestra banner y actualiza automáticamente
+          showUpdateBanner();
+        }
+      });
+    });
+
+    // Si el SW ya está esperando (venía de antes), actualiza de una
+    if (reg.waiting) {
+      reg.waiting.postMessage('SKIP_WAITING');
+      window.location.reload();
+    }
+
+  }).catch(() => {});
+
+  // Cuando el SW nuevo toma control, recarga la página
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    window.location.reload();
+  });
+}
+
+function showUpdateBanner() {
+  // Crea banner de actualización
+  const banner = document.createElement('div');
+  banner.innerHTML = `
+    <div style="position:fixed;bottom:1rem;left:1rem;right:1rem;background:#064e3b;color:#fff;
+                border-radius:12px;padding:.875rem 1rem;display:flex;align-items:center;
+                justify-content:space-between;z-index:999;box-shadow:0 4px 20px rgba(0,0,0,.3);
+                font-family:'DM Sans',sans-serif;font-size:13px;gap:10px;">
+      <span>🆕 Nueva versión disponible</span>
+      <button onclick="applyUpdate()" style="background:#10b981;color:#fff;border:none;
+              border-radius:8px;padding:6px 14px;font-size:13px;font-weight:500;cursor:pointer;
+              font-family:'DM Sans',sans-serif;white-space:nowrap;">Actualizar</button>
+    </div>`;
+  document.body.appendChild(banner);
+}
+
+async function applyUpdate() {
+  const reg = await navigator.serviceWorker.getRegistration();
+  if (reg && reg.waiting) {
+    reg.waiting.postMessage('SKIP_WAITING');
+  } else {
+    window.location.reload();
+  }
 }
 
 // ══ ARRANCAR ══
