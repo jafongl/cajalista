@@ -386,8 +386,6 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:#f3f4f6;color:
       <span class="amt-pre">$</span>
       <input class="amt-inp" type="number" id="m-amt" placeholder="0.00" min="0" step="0.01" inputmode="decimal">
     </div>
-    <label class="lbl">Descripción (opcional)</label>
-    <input class="inp" type="text" id="m-desc" placeholder="Ej: Venta de almuerzo...">
     <label class="lbl" style="margin-bottom:6px;">Categoría</label>
     <div class="cats-section-lbl" id="cats-section-lbl">Más usadas</div>
     <div class="cats" id="m-cats"></div>
@@ -395,6 +393,8 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:#f3f4f6;color:
       <input class="custom-cat-inp" id="custom-cat-inp" type="text" placeholder="+ Nueva categoría..." maxlength="24">
       <button class="custom-cat-btn" onclick="addCustomCat()">Agregar</button>
     </div>
+    <label class="lbl" style="margin-top:.75rem;">Descripción (opcional)</label>
+    <input class="inp" type="text" id="m-desc" placeholder="Ej: Venta de almuerzo...">
     <button class="btn" id="m-save" onclick="saveTx()">Guardar movimiento</button>
     <button class="btn" id="m-delete" onclick="deleteTxFromModal()" style="display:none;background:#fff1f2;color:#dc2626;margin-top:8px;">🗑️ Eliminar movimiento</button>
   </div>
@@ -844,7 +844,8 @@ function openEditModal(tx) {
   EDIT_ID = tx.id;
   document.querySelector('.modal-ttl').textContent = 'Editar movimiento';
   document.getElementById('m-amt').value = tx.amount;
-  document.getElementById('m-desc').value = tx.description;
+  // Only show description if it's different from the category name
+  document.getElementById('m-desc').value = (tx.description === tx.category) ? '' : tx.description;
   document.getElementById('m-save').textContent = 'Guardar cambios';
   document.getElementById('m-delete').style.display = 'block';
   CAT = tx.category;
@@ -876,19 +877,12 @@ function getSmartCats(t) {
   // Sort by usage desc — zero-usage keeps original order (stable sort)
   all.sort((a, b) => (usage[b.name] || 0) - (usage[a.name] || 0));
 
-  // 'Otros' always last UNLESS it's the most used
-  const otrosUsage = usage['Otros'] || 0;
+  // 'Otros' always last — no exceptions
   const otrosIco   = CATS[t].find(([,n])=>n==='Otros')?.[0] || '📝';
   const otros      = { ico: otrosIco, name: 'Otros' };
-  // Remove 'Otros' from all if it got in through defaults
   const allNoOtros = all.filter(c => c.name !== 'Otros');
-  const topUsage   = allNoOtros[0] ? (usage[allNoOtros[0].name] || 0) : 0;
-  if (otrosUsage > 0 && otrosUsage > topUsage) {
-    allNoOtros.unshift(otros); // most used → first
-  } else {
-    allNoOtros.push(otros); // always last
-  }
-  return allNoOtros; // ← missing return added
+  allNoOtros.push(otros); // always last, always
+  return allNoOtros;
 }
 
 let SHOW_ALL_CATS = false;
