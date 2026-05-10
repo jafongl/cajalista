@@ -180,6 +180,13 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:#f3f4f6;color:
 .cat.co{border-color:#fca5a5;background:#fff1f2;color:#dc2626;}
 .offline-bar{background:#fef3c7;border:1px solid #fcd34d;border-radius:8px;padding:.5rem .875rem;font-size:12px;color:#92400e;margin:.5rem 1.25rem 0;display:none;flex-shrink:0;}
 .offline-bar.on{display:block;}
+/* Custom category input */
+.cats-section-lbl{font-size:10px;font-weight:500;color:#9ca3af;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;}
+.custom-cat-wrap{display:flex;gap:6px;margin-top:6px;}
+.custom-cat-inp{flex:1;padding:.55rem .75rem;border:1.5px solid #e5e7eb;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:13px;color:#111827;outline:none;background:#fff;}
+.custom-cat-inp:focus{border-color:#10b981;}
+.custom-cat-btn{padding:.55rem .875rem;border:none;border-radius:8px;background:#064e3b;color:#fff;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;cursor:pointer;white-space:nowrap;}
+
 /* Action sheet */
 .sheet-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:300;display:none;align-items:flex-end;justify-content:center;}
 .sheet-overlay.on{display:flex;}
@@ -362,7 +369,12 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:#f3f4f6;color:
     <label class="lbl">Descripción (opcional)</label>
     <input class="inp" type="text" id="m-desc" placeholder="Ej: Venta de almuerzo...">
     <label class="lbl" style="margin-bottom:6px;">Categoría</label>
+    <div class="cats-section-lbl" id="cats-section-lbl">Más usadas</div>
     <div class="cats" id="m-cats"></div>
+    <div class="custom-cat-wrap">
+      <input class="custom-cat-inp" id="custom-cat-inp" type="text" placeholder="+ Nueva categoría..." maxlength="24">
+      <button class="custom-cat-btn" onclick="addCustomCat()">Agregar</button>
+    </div>
     <button class="btn" id="m-save" onclick="saveTx()">Guardar movimiento</button>
     <button class="btn" id="m-delete" onclick="deleteTxFromModal()" style="display:none;background:#fff1f2;color:#dc2626;margin-top:8px;">🗑️ Eliminar movimiento</button>
   </div>
@@ -382,6 +394,7 @@ let FILTER = 'all';
 let TF = '1D';
 let EDIT_ID = null;
 let SHEET_TX = null;
+let CUSTOM_CATS = { in: [], out: [] };
 
 const DIAS = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
 const CATS = {
@@ -447,6 +460,7 @@ async function loadApp() {
   document.getElementById('h-date').textContent =
     new Date().toLocaleDateString('es-PA', {weekday:'short', day:'numeric', month:'short'});
   await loadTxs();
+  loadCustomCats();
   renderAll();
 }
 
@@ -751,11 +765,7 @@ function openEditModal(tx) {
   document.getElementById('m-delete').style.display = 'block';
   CAT = tx.category;
   setType(tx.type);
-  // Re-highlight selected cat
-  document.querySelectorAll('.cat').forEach(c => {
-    const matches = c.textContent.includes(tx.category);
-    c.className = 'cat' + (matches ? (tx.type==='in'?' ci':' co') : '');
-  });
+  renderCatsGrid(tx.category);
   document.getElementById('overlay').classList.add('on');
 }
 function closeModal() {
@@ -764,19 +774,78 @@ function closeModal() {
 }
 function closeOuter(e) { if (e.target===document.getElementById('overlay')) closeModal(); }
 
+function getSmartCats(t) {
+  // Count usage per category from TXS
+  const usage = {};
+  TXS.filter(x => x.type === t).forEach(x => {
+    usage[x.category] = (usage[x.category] || 0) + 1;
+  });
+
+  // Default cats for this type
+  const defaults = CATS[t].map(([ico, name]) => ({ ico, name }));
+
+  // Custom cats added by user
+  const customs = (CUSTOM_CATS[t] || []).map(name => ({ ico: '🏷️', name }));
+
+  // Merge all unique cats
+  const all = [...defaults];
+  customs.forEach(c => { if (!all.find(a => a.name === c.name)) all.push(c); });
+
+  // Sort by usage descending, then keep original order for ties
+  all.sort((a, b) => (usage[b.name] || 0) - (usage[a.name] || 0));
+
+  return all.slice(0, 9); // max 9 shown
+}
+
 function setType(t) {
   TYPE = t; CAT = '';
   document.getElementById('t-in').className  = 'tbtn'+(t==='in'?' ti':'');
   document.getElementById('t-out').className = 'tbtn'+(t==='out'?' to':'');
-  document.getElementById('m-cats').innerHTML = CATS[t].map(([ico,name])=>
-    `<div class="cat${CAT===name?(t==='in'?' ci':' co'):''}" onclick="pickCat('${name}')">${ico}<br>${name}</div>`
+  document.getElementById('custom-cat-inp').value = '';
+  renderCatsGrid();
+}
+
+function renderCatsGrid(selectedCat) {
+  const sel = selectedCat !== undefined ? selectedCat : CAT;
+  const cats = getSmartCats(TYPE);
+  const hasUsage = TXS.some(x => x.type === TYPE);
+  if (document.getElementById('cats-section-lbl')) {
+    document.getElementById('cats-section-lbl').textContent = hasUsage ? 'Más usadas' : 'Categorías';
+  }
+  document.getElementById('m-cats').innerHTML = cats.map(({ico, name}) =>
+    `<div class="cat${sel===name?(TYPE==='in'?' ci':' co'):''}" onclick="pickCat('${name.replace(/'/g,"\'")}')">
+      ${ico}<br><span style="font-size:10px;line-height:1.3;">${name}</span>
+    </div>`
   ).join('');
 }
+
 function pickCat(name) {
   CAT = name;
-  document.querySelectorAll('.cat').forEach(c=>{
-    c.className = 'cat' + (c.textContent.includes(name) ? (TYPE==='in'?' ci':' co') : '');
-  });
+  renderCatsGrid(name);
+}
+
+function addCustomCat() {
+  const inp = document.getElementById('custom-cat-inp');
+  const name = inp.value.trim();
+  if (!name) return;
+  // Add to custom cats if not already there
+  if (!CUSTOM_CATS[TYPE]) CUSTOM_CATS[TYPE] = [];
+  if (!CUSTOM_CATS[TYPE].includes(name) && !CATS[TYPE].find(c => c[1] === name)) {
+    CUSTOM_CATS[TYPE].push(name);
+    saveCustomCats();
+  }
+  CAT = name;
+  inp.value = '';
+  renderCatsGrid(name);
+}
+
+function loadCustomCats() {
+  const stored = localStorage.getItem('cc_custom_cats_' + (USER?.id || ''));
+  if (stored) CUSTOM_CATS = JSON.parse(stored);
+}
+
+function saveCustomCats() {
+  localStorage.setItem('cc_custom_cats_' + (USER?.id || ''), JSON.stringify(CUSTOM_CATS));
 }
 
 // ══ ACTION SHEET ══
