@@ -793,13 +793,13 @@ function renderRep() {
   document.getElementById('rep-summary').innerHTML = `<div class="rcard">
     <div class="rttl">Resumen — ${label}</div>
 
-    <div class="srow" style="cursor:${inRows?'pointer':'default'}" onclick="${inRows?'toggleRepCats('in')':''}">
+    <div class="srow" style="cursor:pointer" onclick="toggleRepCats('in')">
       <span class="slbl">Total entradas ${inRows?(REP_CATS_IN_OPEN?'▲':'▼'):''}</span>
       <span class="sval p">${fmt(inn)}</span>
     </div>
     ${inRows}
 
-    <div class="srow" style="cursor:${outRows?'pointer':'default'}" onclick="${outRows?'toggleRepCats('out')':''}">
+    <div class="srow" style="cursor:pointer" onclick="toggleRepCats('out')">
       <span class="slbl">Total salidas ${outRows?(REP_CATS_OUT_OPEN?'▲':'▼'):''}</span>
       <span class="sval n">${fmt(out)}</span>
     </div>
