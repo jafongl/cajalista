@@ -775,30 +775,40 @@ function closeModal() {
 function closeOuter(e) { if (e.target===document.getElementById('overlay')) closeModal(); }
 
 function getSmartCats(t) {
-  // Count usage per category from TXS
+  // Count usage per category from transaction history
   const usage = {};
   TXS.filter(x => x.type === t).forEach(x => {
     usage[x.category] = (usage[x.category] || 0) + 1;
   });
 
-  // Default cats for this type
-  const defaults = CATS[t].map(([ico, name]) => ({ ico, name }));
+  // Defaults (excluding 'Otros') + custom cats
+  const defaults = CATS[t].filter(([,n]) => n !== 'Otros').map(([ico, name]) => ({ ico, name }));
+  const customs  = (CUSTOM_CATS[t] || []).map(name => ({ ico: '🏷️', name }));
 
-  // Custom cats added by user
-  const customs = (CUSTOM_CATS[t] || []).map(name => ({ ico: '🏷️', name }));
-
-  // Merge all unique cats
+  // Merge unique
   const all = [...defaults];
   customs.forEach(c => { if (!all.find(a => a.name === c.name)) all.push(c); });
 
-  // Sort by usage descending, then keep original order for ties
+  // Sort by usage desc — zero-usage keeps original order (stable sort)
   all.sort((a, b) => (usage[b.name] || 0) - (usage[a.name] || 0));
 
-  return all.slice(0, 9); // max 9 shown
+  // 'Otros' always last UNLESS it's the most used
+  const otrosUsage = usage['Otros'] || 0;
+  const otros = { ico: '📝', name: 'Otros' };
+  const topUsage = all[0] ? (usage[all[0].name] || 0) : 0;
+  if (otrosUsage > 0 && otrosUsage >= topUsage) {
+    all.unshift(otros); // most used → first
+  } else {
+    all.push(otros); // always last
+  }
+
+  return all;
 }
 
+let SHOW_ALL_CATS = false;
+
 function setType(t) {
-  TYPE = t; CAT = '';
+  TYPE = t; CAT = ''; SHOW_ALL_CATS = false;
   document.getElementById('t-in').className  = 'tbtn'+(t==='in'?' ti':'');
   document.getElementById('t-out').className = 'tbtn'+(t==='out'?' to':'');
   document.getElementById('custom-cat-inp').value = '';
@@ -807,16 +817,42 @@ function setType(t) {
 
 function renderCatsGrid(selectedCat) {
   const sel = selectedCat !== undefined ? selectedCat : CAT;
-  const cats = getSmartCats(TYPE);
+  const all  = getSmartCats(TYPE);
+  const MAX  = 8;
+  const hasMore = all.length > MAX;
+
+  // Decide which to show
+  let visible = SHOW_ALL_CATS ? all : all.slice(0, MAX);
+
   const hasUsage = TXS.some(x => x.type === TYPE);
-  if (document.getElementById('cats-section-lbl')) {
-    document.getElementById('cats-section-lbl').textContent = hasUsage ? 'Más usadas' : 'Categorías';
-  }
-  document.getElementById('m-cats').innerHTML = cats.map(({ico, name}) =>
-    `<div class="cat${sel===name?(TYPE==='in'?' ci':' co'):''}" onclick="pickCat('${name.replace(/'/g,"\'")}')">
+  const lbl = document.getElementById('cats-section-lbl');
+  if (lbl) lbl.textContent = hasUsage ? 'Más usadas' : 'Categorías';
+
+  const catHTML = visible.map(({ico, name}) => {
+    const safeName = name.replace(/'/g, "\'");
+    const selClass = sel === name ? (TYPE==='in'?' ci':' co') : '';
+    return `<div class="cat${selClass}" onclick="pickCat('${safeName}')">
       ${ico}<br><span style="font-size:10px;line-height:1.3;">${name}</span>
-    </div>`
-  ).join('');
+    </div>`;
+  }).join('');
+
+  // "Ver más / Ver menos" button as 9th slot when needed
+  const moreBtn = (!SHOW_ALL_CATS && hasMore)
+    ? `<div class="cat" onclick="toggleAllCats()" style="border-style:dashed;">
+        ···<br><span style="font-size:10px;line-height:1.3;">Ver más</span>
+       </div>`
+    : (SHOW_ALL_CATS && hasMore)
+    ? `<div class="cat" onclick="toggleAllCats()" style="border-style:dashed;grid-column:1/-1;justify-self:center;width:auto;padding:.4rem 1.5rem;">
+        <span style="font-size:11px;">Ver menos ▲</span>
+       </div>`
+    : '';
+
+  document.getElementById('m-cats').innerHTML = catHTML + moreBtn;
+}
+
+function toggleAllCats() {
+  SHOW_ALL_CATS = !SHOW_ALL_CATS;
+  renderCatsGrid();
 }
 
 function pickCat(name) {
@@ -825,18 +861,20 @@ function pickCat(name) {
 }
 
 function addCustomCat() {
-  const inp = document.getElementById('custom-cat-inp');
+  const inp  = document.getElementById('custom-cat-inp');
   const name = inp.value.trim();
   if (!name) return;
-  // Add to custom cats if not already there
   if (!CUSTOM_CATS[TYPE]) CUSTOM_CATS[TYPE] = [];
-  if (!CUSTOM_CATS[TYPE].includes(name) && !CATS[TYPE].find(c => c[1] === name)) {
+  const alreadyDefault = CATS[TYPE].find(c => c[1].toLowerCase() === name.toLowerCase());
+  const alreadyCustom  = CUSTOM_CATS[TYPE].find(c => c.toLowerCase() === name.toLowerCase());
+  if (!alreadyDefault && !alreadyCustom) {
     CUSTOM_CATS[TYPE].push(name);
     saveCustomCats();
   }
-  CAT = name;
+  CAT = alreadyDefault ? alreadyDefault[1] : (alreadyCustom || name);
   inp.value = '';
-  renderCatsGrid(name);
+  SHOW_ALL_CATS = false;
+  renderCatsGrid(CAT);
 }
 
 function loadCustomCats() {
