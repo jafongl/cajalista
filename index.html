@@ -402,8 +402,15 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:#f3f4f6;color:
 
 <script>
 // ══ SUPABASE INIT ══
-// La librería ya cargó en el <head> como script bloqueante
-const SB = window.supabase.createClient(window.__SB_URL__, window.__SB_KEY__);
+const _SB_URL = window.__SB_URL__ || 'https://lwnbjlcqxkoiirbsvcjr.supabase.co';
+const _SB_KEY = window.__SB_KEY__ || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx3bmJqbGNxeGtvaWlyYnN2Y2pyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzczMjYyMjUsImV4cCI6MjA5MjkwMjIyNX0.1zDOKyWR8BxY-Gs1T3NlM6O94frskVzZJQxdaq8E0Mc';
+let SB;
+try {
+  SB = window.supabase.createClient(_SB_URL, _SB_KEY);
+} catch(e) {
+  console.error('Supabase init error:', e);
+  document.getElementById('a-err') && (document.getElementById('a-err').textContent = 'Error al conectar. Recarga la página.');
+}
 
 // ══ ESTADO ══
 let USER = null;
