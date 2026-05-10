@@ -776,17 +776,19 @@ function renderRep() {
     const sorted = Object.entries(totals).sort((a,b)=>b[1]-a[1]);
     const mx = Math.max(...sorted.map(c=>c[1]),1);
     const typeTotal = sorted.reduce((s,c)=>s+c[1],0);
-    const ico = isOpen ? '▲' : '▼';
-    return `<div class="rcard">
+    const color = type==='in' ? '#059669' : '#dc2626';
+    return `<div class="rcard" style="margin-bottom:.625rem;">
       <div class="cat-section-hdr" onclick="toggleRepCats('${type}')">
-        <div>
-          <div class="rttl" style="margin-bottom:2px;">${label2}</div>
-          <div style="font-size:14px;font-weight:500;color:${type==='in'?'#059669':'#dc2626'};">${fmt(typeTotal)}</div>
+        <div style="display:flex;justify-content:space-between;align-items:center;width:100%;">
+          <span style="font-size:13px;color:#6b7280;">${label2}</span>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <span style="font-size:14px;font-weight:500;color:${color};">${fmt(typeTotal)}</span>
+            <span style="font-size:11px;color:#9ca3af;">${isOpen?'▲':'▼'}</span>
+          </div>
         </div>
-        <div class="cat-toggle-ico ${isOpen?'open':''}">${ico}</div>
       </div>
-      <div class="cat-section-body ${isOpen?'open':''}">
-        <div style="height:.625rem;"></div>
+      <div class="cat-section-body ${isOpen?'open':''}" style="max-height:${isOpen?'600px':'0'};">
+        <div style="height:.5rem;border-top:1px solid #f3f4f6;margin-top:.625rem;"></div>
         ${sorted.map(([name,total])=>`
           <div class="cbar">
             <div class="cbar-top"><span>${name}</span><span>${fmt(total)}</span></div>
@@ -796,9 +798,10 @@ function renderRep() {
     </div>`;
   };
 
-  document.getElementById('rep-cats').innerHTML =
-    buildCatSection('in',  'Entradas por categoría', REP_CATS_IN_OPEN) +
-    buildCatSection('out', 'Salidas por categoría',  REP_CATS_OUT_OPEN) ||
+  const inSection  = buildCatSection('in',  'Entradas', REP_CATS_IN_OPEN);
+  const outSection = buildCatSection('out', 'Salidas',  REP_CATS_OUT_OPEN);
+  const combined   = inSection + outSection;
+  document.getElementById('rep-cats').innerHTML = combined ||
     '<div class="rcard" style="text-align:center;color:#9ca3af;font-size:13px;">Sin movimientos en este período.</div>';
 }
 
@@ -878,6 +881,7 @@ function getSmartCats(t) {
   } else {
     allNoOtros.push(otros); // always last
   }
+  return allNoOtros; // ← missing return added
 }
 
 let SHOW_ALL_CATS = false;
