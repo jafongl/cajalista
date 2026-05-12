@@ -313,31 +313,19 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:#f3f4f6;color:
 
   <!-- HOME -->
   <div class="panel on" id="panel-home">
-    <div style="height:.875rem;"></div>
-    <div class="qa-grid">
-      <div class="qa e" onclick="openModal('in')">
-        <div class="qa-ico e">💰</div>
-        <div class="qa-name">Registrar entrada</div>
+    <div style="height:1.25rem;"></div>
+    <div class="qa-grid" style="grid-template-columns:1fr 1fr;gap:12px;">
+      <div class="qa e" onclick="openModal('in')" style="padding:1.25rem;border-radius:16px;">
+        <div class="qa-ico e" style="width:44px;height:44px;border-radius:12px;font-size:22px;">💰</div>
+        <div class="qa-name" style="font-size:14px;">Registrar entrada</div>
         <div class="qa-desc">Venta, cobro, depósito</div>
       </div>
-      <div class="qa s" onclick="openModal('out')">
-        <div class="qa-ico s">📤</div>
-        <div class="qa-name">Registrar salida</div>
+      <div class="qa s" onclick="openModal('out')" style="padding:1.25rem;border-radius:16px;">
+        <div class="qa-ico s" style="width:44px;height:44px;border-radius:12px;font-size:22px;">📤</div>
+        <div class="qa-name" style="font-size:14px;">Registrar salida</div>
         <div class="qa-desc">Gasto, pago, compra</div>
       </div>
     </div>
-    <div class="sec-hdr"><span class="sec-ttl">Esta semana</span><span class="sec-lnk" onclick="goTabByName('rep')">ver reporte →</span></div>
-    <div class="chart-card">
-      <div class="chart-bars" id="c-bars"></div>
-      <div class="chart-lbls" id="c-lbls"></div>
-      <div class="legend">
-        <div class="leg"><div class="leg-dot" style="background:#10b981;"></div>Entradas</div>
-        <div class="leg"><div class="leg-dot" style="background:#fca5a5;"></div>Salidas</div>
-      </div>
-    </div>
-    <div class="sec-hdr"><span class="sec-ttl">Movimientos de hoy</span><span class="sec-lnk" onclick="goTabByName('hist')">ver todos →</span></div>
-    <div id="today-list"></div>
-    <div style="height:.875rem;"></div>
   </div>
 
   <!-- HISTORIAL -->
@@ -368,6 +356,15 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:#f3f4f6;color:
       <button class="tf-btn-rep" onclick="setRepTF('ALL',this)">Todo</button>
     </div>
     <div id="rep-summary"></div>
+    <div class="chart-card" style="margin-bottom:.875rem;">
+      <div style="font-size:11px;font-weight:500;color:#9ca3af;text-transform:uppercase;letter-spacing:.05em;margin-bottom:.75rem;">Flujo del período</div>
+      <div class="chart-bars" id="c-bars" style="height:80px;"></div>
+      <div class="chart-lbls" id="c-lbls"></div>
+      <div class="legend">
+        <div class="leg"><div class="leg-dot" style="background:#10b981;"></div>Entradas</div>
+        <div class="leg"><div class="leg-dot" style="background:#fca5a5;"></div>Salidas</div>
+      </div>
+    </div>
     <div id="rep-cats"></div>
     <div style="height:.875rem;"></div>
   </div>
@@ -640,7 +637,6 @@ const today = () => new Date().toISOString().slice(0,10);
 function renderAll() {
   renderBalances();
   renderChart();
-  renderToday();
   renderHist();
   renderRep();
 }
@@ -683,21 +679,21 @@ function renderBalances() {
 }
 
 function renderChart() {
-  const { from } = getTFRange();
+  const MESES = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+  const { from } = getRepRange(); // uses REP_TF — controlled by report timeframe
   const now = new Date();
-  const days = [];
-  // Choose bucket size based on TF
   let buckets, fmt_lbl;
-  if (TF==='1D') { buckets=24; fmt_lbl=(d)=>d.getHours()+'h'; }
-  else if (TF==='1S') { buckets=7; fmt_lbl=(d)=>DIAS[d.getDay()]; }
-  else if (TF==='1M') { buckets=30; fmt_lbl=(d)=>d.getDate()+''; }
-  else if (TF==='3M') { buckets=12; fmt_lbl=(d)=>d.getDate()+'/'+( d.getMonth()+1); }
-  else if (TF==='6M') { buckets=6; fmt_lbl=(d)=>['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'][d.getMonth()]; }
-  else if (TF==='1A') { buckets=12; fmt_lbl=(d)=>['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'][d.getMonth()]; }
-  else if (TF==='YTD') { buckets=now.getMonth()+1; fmt_lbl=(d)=>['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'][d.getMonth()]; }
-  else { buckets=Math.min(12,Math.max(1,Math.ceil((now-from)/(30*24*3600*1000)))); fmt_lbl=(d)=>['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'][d.getMonth()]+' '+d.getFullYear().toString().slice(2); }
+  if (REP_TF==='1D')  { buckets=24; fmt_lbl=(d)=>d.getHours()+'h'; }
+  else if (REP_TF==='1S')  { buckets=7;  fmt_lbl=(d)=>DIAS[d.getDay()]; }
+  else if (REP_TF==='1M')  { buckets=30; fmt_lbl=(d)=>d.getDate()+''; }
+  else if (REP_TF==='3M')  { buckets=12; fmt_lbl=(d)=>d.getDate()+'/'+( d.getMonth()+1); }
+  else if (REP_TF==='6M')  { buckets=6;  fmt_lbl=(d)=>MESES[d.getMonth()]; }
+  else if (REP_TF==='1A')  { buckets=12; fmt_lbl=(d)=>MESES[d.getMonth()]; }
+  else if (REP_TF==='YTD') { buckets=now.getMonth()+1||1; fmt_lbl=(d)=>MESES[d.getMonth()]; }
+  else { buckets=Math.min(12,Math.max(1,Math.ceil((now-from)/(30*24*3600*1000)))); fmt_lbl=(d)=>MESES[d.getMonth()]+' '+d.getFullYear().toString().slice(2); }
 
   const range = now - from;
+  const days = [];
   for (let i=0; i<buckets; i++) {
     const bStart = new Date(from.getTime() + (range/buckets)*i);
     const bEnd   = new Date(from.getTime() + (range/buckets)*(i+1));
@@ -709,10 +705,9 @@ function renderChart() {
     if (bucket) bucket[x.type] += Number(x.amount);
   });
   const mx = Math.max(...days.flatMap(d=>[d.in,d.out]), 1);
-  // Show only every Nth label to avoid crowding
   const step = Math.ceil(buckets/7);
   document.getElementById('c-bars').innerHTML = days.map(d =>
-    `<div class="bg"><div class="b i" style="height:${Math.round(d.in/mx*64)}px"></div><div class="b o" style="height:${Math.round(d.out/mx*64)}px"></div></div>`
+    `<div class="bg"><div class="b i" style="height:${Math.round(d.in/mx*76)}px"></div><div class="b o" style="height:${Math.round(d.out/mx*76)}px"></div></div>`
   ).join('');
   document.getElementById('c-lbls').innerHTML = days.map((d,i) =>
     `<div class="cl">${i%step===0?d.lbl:''}</div>`
@@ -793,6 +788,7 @@ function setRepTF(tf, el) {
   document.querySelectorAll('.tf-btn-rep').forEach(b => b.classList.remove('on'));
   el.classList.add('on');
   renderRep();
+  renderChart();
 }
 
 function getRepRange() {
