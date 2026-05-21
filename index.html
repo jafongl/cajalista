@@ -49,6 +49,14 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:#f3f4f6;color:
 .err{font-size:12px;color:#dc2626;text-align:center;margin-top:.625rem;min-height:16px;}
 .auth-foot{font-size:11px;color:rgba(255,255,255,.45);text-align:center;margin-top:.875rem;}
 .forgot-link{display:block;text-align:center;font-size:12px;color:#6b7280;margin-top:.75rem;cursor:pointer;text-decoration:underline;}
+.pass-wrap{position:relative;margin-bottom:.875rem;}
+.pass-wrap .inp{margin-bottom:0;padding-right:2.75rem;}
+.pass-toggle{position:absolute;right:.75rem;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:18px;color:#9ca3af;padding:0;line-height:1;}
+.pass-toggle:hover{color:#374151;}
+.pass-wrap{position:relative;margin-bottom:.875rem;}
+.pass-wrap .inp{margin-bottom:0;padding-right:2.75rem;}
+.pass-toggle{position:absolute;right:.75rem;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:16px;color:#9ca3af;padding:0;line-height:1;}
+.pass-toggle:hover{color:#6b7280;}
 .forgot-link:hover{color:#064e3b;}
 .success-box{background:#ecfdf5;border:1px solid #a7f3d0;border-radius:8px;padding:.75rem;font-size:13px;color:#065f46;text-align:center;margin-top:.75rem;display:none;}
 .success-box.show{display:block;}
@@ -241,7 +249,10 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:#f3f4f6;color:
       <label class="lbl">Correo electrónico</label>
       <input class="inp" type="email" id="a-email" placeholder="tucorreo@gmail.com" autocomplete="email">
       <label class="lbl">Contraseña</label>
-      <input class="inp" type="password" id="a-pass" placeholder="mínimo 6 caracteres" autocomplete="current-password">
+      <div class="pass-wrap">
+        <input class="inp" type="password" id="a-pass" placeholder="mínimo 6 caracteres" autocomplete="current-password">
+        <button type="button" class="pass-toggle" onclick="togglePass('a-pass',this)" tabindex="-1">👁️</button>
+      </div>
       <div id="name-wrap" style="display:none;">
         <label class="lbl">Nombre del negocio</label>
         <input class="inp" id="a-name" type="text" placeholder="Ej: Tienda Don Carlos">
@@ -448,6 +459,15 @@ const CATS = {
   in:  [['🛍️','Ventas'],['🔧','Servicios'],['💵','Cobros'],['🏦','Préstamo'],['🎁','Otros']],
   out: [['📦','Proveedores'],['💡','Servicios pub.'],['🏠','Alquiler'],['👥','Nómina'],['🚗','Transporte'],['📝','Otros']]
 };
+
+// ══ TOGGLE PASSWORD VISIBILITY ══
+function togglePass(inputId, btn) {
+  const inp = document.getElementById(inputId);
+  if (!inp) return;
+  const isHidden = inp.type === 'password';
+  inp.type = isHidden ? 'text' : 'password';
+  btn.textContent = isHidden ? '🙈' : '👁️';
+}
 
 // ══ AUTH ══
 let authMode = 'login';
@@ -1084,6 +1104,15 @@ function txTouchEnd(e, id) {
   else if (Math.abs(dx) < 10) { openSheet(id); } // tap = open sheet
 }
 
+// ══ PASSWORD VISIBILITY TOGGLE ══
+function togglePass(inputId, btn) {
+  const inp = document.getElementById(inputId);
+  if (!inp) return;
+  const isHidden = inp.type === 'password';
+  inp.type = isHidden ? 'text' : 'password';
+  btn.textContent = isHidden ? '🙈' : '👁️';
+}
+
 // ══ OFFLINE ══
 window.addEventListener('online',  ()=>{ document.getElementById('offline-bar').classList.remove('on'); syncPending(); });
 window.addEventListener('offline', ()=>{ document.getElementById('offline-bar').classList.add('on'); });
@@ -1178,9 +1207,15 @@ function showNewPasswordScreen() {
       <div style="font-size:13px;color:#6b7280;margin-top:4px;">Elige una contraseña segura</div>
     </div>
     <label class="lbl">Nueva contraseña</label>
-    <input class="inp" type="password" id="new-pass" placeholder="mínimo 6 caracteres">
+    <div class="pass-wrap">
+      <input class="inp" type="password" id="new-pass" placeholder="mínimo 6 caracteres">
+      <button type="button" class="pass-toggle" onclick="togglePass('new-pass',this)" tabindex="-1">👁️</button>
+    </div>
     <label class="lbl" style="margin-top:.5rem;">Confirmar contraseña</label>
-    <input class="inp" type="password" id="new-pass2" placeholder="repite la contraseña">
+    <div class="pass-wrap">
+      <input class="inp" type="password" id="new-pass2" placeholder="repite la contraseña">
+      <button type="button" class="pass-toggle" onclick="togglePass('new-pass2',this)" tabindex="-1">👁️</button>
+    </div>
     <button class="btn" id="new-pass-btn" onclick="saveNewPassword()">Guardar nueva contraseña</button>
     <div class="err" id="new-pass-err"></div>
     <div class="success-box" id="new-pass-success"></div>`;
