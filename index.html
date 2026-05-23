@@ -204,6 +204,36 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:#f3f4f6;color:
 .cat.co{border-color:#fca5a5;background:#fff1f2;color:#dc2626;}
 .offline-bar{background:#fef3c7;border:1px solid #fcd34d;border-radius:8px;padding:.5rem .875rem;font-size:12px;color:#92400e;margin:.5rem 1.25rem 0;display:none;flex-shrink:0;}
 .offline-bar.on{display:block;}
+/* Budget */
+.budget-overview{background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:1rem;margin-bottom:.875rem;}
+.budget-overview-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:.5rem;}
+.budget-overview-lbl{font-size:12px;color:#6b7280;}
+.budget-overview-val{font-size:14px;font-weight:500;}
+.bcard{background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:.875rem;margin-bottom:.625rem;}
+.bcard-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:.625rem;}
+.bcard-name{font-size:13px;font-weight:500;color:#111827;}
+.bcard-type{font-size:10px;padding:2px 8px;border-radius:20px;margin-top:2px;display:inline-block;}
+.bcard-type.in{background:#ecfdf5;color:#065f46;}
+.bcard-type.out{background:#fff1f2;color:#dc2626;}
+.bcard-amounts{text-align:right;}
+.bcard-real{font-size:13px;font-weight:500;}
+.bcard-real.ok{color:#059669;}
+.bcard-real.over{color:#dc2626;}
+.bcard-limit{font-size:11px;color:#9ca3af;}
+.bcard-bar-track{height:6px;background:#f3f4f6;border-radius:3px;overflow:hidden;margin-bottom:4px;}
+.bcard-bar-fill{height:100%;border-radius:3px;transition:width .4s ease;}
+.bcard-pct{font-size:10px;color:#9ca3af;text-align:right;}
+.bcard-actions{display:flex;gap:6px;margin-top:.5rem;}
+.bcard-action{flex:1;padding:.4rem;border:1px solid #e5e7eb;border-radius:6px;background:#fff;font-size:11px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;color:#6b7280;}
+.bcard-action.del{color:#dc2626;border-color:#fecaca;}
+.budget-empty{text-align:center;padding:2rem 1rem;color:#9ca3af;font-size:13px;border:1px dashed #e5e7eb;border-radius:12px;margin-bottom:.875rem;}
+
+/* Budget modal additions */
+.bm-type-row{display:flex;gap:6px;margin-bottom:1rem;}
+.bm-type-btn{flex:1;padding:.5rem;border-radius:8px;border:1.5px solid #e5e7eb;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;cursor:pointer;background:#fff;color:#6b7280;}
+.bm-type-btn.ti{border-color:#6ee7b7;background:#ecfdf5;color:#065f46;}
+.bm-type-btn.to{border-color:#fca5a5;background:#fff1f2;color:#dc2626;}
+
 /* Custom category input */
 .cats-section-lbl{font-size:10px;font-weight:500;color:#9ca3af;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;}
 .custom-cat-wrap{display:flex;gap:6px;margin-top:6px;}
@@ -318,6 +348,27 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:#f3f4f6;color:
     <button class="ntab on" onclick="goTab('home',this)"><span>🏠</span>Inicio</button>
     <button class="ntab" onclick="goTab('hist',this)"><span>📋</span>Historial</button>
     <button class="ntab" onclick="goTab('rep',this)"><span>📊</span>Reportes</button>
+    <button class="ntab" onclick="goTab('budget',this)"><span>🎯</span>Presupuesto</button>
+  </div>
+
+  <!-- PRESUPUESTO -->
+  <div class="panel" id="panel-budget">
+    <div style="height:.875rem;"></div>
+    <!-- Period selector -->
+    <div style="display:flex;gap:6px;margin-bottom:1rem;">
+      <button class="tf-btn-rep on" id="bp-mes"  onclick="setBudgetPeriod('mes',this)">Este mes</button>
+      <button class="tf-btn-rep"    id="bp-sem"  onclick="setBudgetPeriod('semana',this)">Esta semana</button>
+      <button class="tf-btn-rep"    id="bp-ytd"  onclick="setBudgetPeriod('ytd',this)">Este año</button>
+    </div>
+    <!-- Overview -->
+    <div id="budget-overview"></div>
+    <!-- Category list -->
+    <div id="budget-list"></div>
+    <!-- Add button -->
+    <button class="btn" onclick="openBudgetModal()" style="margin-top:.75rem;background:#064e3b;">
+      + Agregar presupuesto
+    </button>
+    <div style="height:1rem;"></div>
   </div>
 
   <div class="offline-bar" id="offline-bar">📵 Sin conexión — se sincronizará cuando vuelva la red.</div>
@@ -378,6 +429,38 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:#f3f4f6;color:
     </div>
     <div id="rep-cats"></div>
     <div style="height:.875rem;"></div>
+  </div>
+</div>
+
+<!-- ══ BUDGET MODAL ══ -->
+<div class="overlay" id="budget-overlay" onclick="closeBudgetOuter(event)">
+  <div class="modal">
+    <div class="modal-pill"></div>
+    <div class="modal-ttl" id="bm-title">Nuevo presupuesto</div>
+    <label class="lbl" style="margin-bottom:6px;">Tipo</label>
+    <div class="bm-type-row">
+      <button class="bm-type-btn" id="bm-in"  onclick="setBudgetType('in')">💰 Entrada</button>
+      <button class="bm-type-btn" id="bm-out" onclick="setBudgetType('out')">📤 Salida</button>
+    </div>
+    <label class="lbl" style="margin-bottom:6px;">Categoría</label>
+    <select class="inp" id="bm-cat" style="margin-bottom:.5rem;"></select>
+    <div class="custom-cat-wrap" style="margin-bottom:.875rem;">
+      <input class="custom-cat-inp" id="bm-new-cat" type="text" placeholder="+ Nueva categoría..." maxlength="24">
+      <button class="custom-cat-btn" onclick="addBudgetCat()">Agregar</button>
+    </div>
+    <label class="lbl">Monto límite (USD)</label>
+    <div class="amt-wrap" style="margin-bottom:1rem;">
+      <span class="amt-pre">$</span>
+      <input class="amt-inp" type="number" id="bm-amt" placeholder="0.00" min="0" step="0.01" inputmode="decimal">
+    </div>
+    <label class="lbl" style="margin-bottom:6px;">Período</label>
+    <select class="inp" id="bm-period" style="margin-bottom:1rem;">
+      <option value="mes">Mensual</option>
+      <option value="semana">Semanal</option>
+      <option value="ytd">Anual</option>
+    </select>
+    <button class="btn" id="bm-save" onclick="saveBudget()">Guardar presupuesto</button>
+    <button class="btn" id="bm-delete" onclick="deleteBudgetFromModal()" style="display:none;background:#fff1f2;color:#dc2626;margin-top:8px;">🗑️ Eliminar presupuesto</button>
   </div>
 </div>
 
@@ -459,6 +542,215 @@ const CATS = {
   in:  [['🛍️','Ventas'],['🔧','Servicios'],['💵','Cobros'],['🏦','Préstamo'],['🎁','Otros']],
   out: [['📦','Proveedores'],['💡','Servicios pub.'],['🏠','Alquiler'],['👥','Nómina'],['🚗','Transporte'],['📝','Otros']]
 };
+
+// ══ BUDGET ══
+let BUDGETS = [];
+let BUDGET_PERIOD = 'mes';
+let EDIT_BUDGET_ID = null;
+let BM_TYPE = 'out';
+
+function loadBudgets() {
+  try {
+    const stored = localStorage.getItem('cc_budgets_' + (USER?.id || 'guest'));
+    BUDGETS = stored ? JSON.parse(stored) : [];
+  } catch(e) { BUDGETS = []; }
+}
+
+function saveBudgets() {
+  localStorage.setItem('cc_budgets_' + (USER?.id || 'guest'), JSON.stringify(BUDGETS));
+}
+
+function getBudgetRange(period) {
+  const now = new Date();
+  if (period === 'mes')    { return new Date(now.getFullYear(), now.getMonth(), 1); }
+  if (period === 'semana') { const d = new Date(); d.setDate(d.getDate()-7); return d; }
+  if (period === 'ytd')    { return new Date(now.getFullYear(), 0, 1); }
+  return new Date(now.getFullYear(), now.getMonth(), 1);
+}
+
+function setBudgetPeriod(p, el) {
+  BUDGET_PERIOD = p;
+  document.querySelectorAll('#panel-budget .tf-btn-rep').forEach(b => b.classList.remove('on'));
+  el.classList.add('on');
+  renderBudget();
+}
+
+function renderBudget() {
+  const from = getBudgetRange(BUDGET_PERIOD);
+  const filtered = TXS.filter(x => new Date(x.created_at) >= from);
+
+  // Filter budgets by period
+  const periodBudgets = BUDGETS.filter(b => b.period === BUDGET_PERIOD);
+
+  // Overview
+  const totalBudgetOut = periodBudgets.filter(b=>b.type==='out').reduce((s,b)=>s+b.amount,0);
+  const totalBudgetIn  = periodBudgets.filter(b=>b.type==='in').reduce((s,b)=>s+b.amount,0);
+  const totalRealOut   = filtered.filter(x=>x.type==='out').reduce((s,x)=>s+Number(x.amount),0);
+  const totalRealIn    = filtered.filter(x=>x.type==='in').reduce((s,x)=>s+Number(x.amount),0);
+
+  const overviewHTML = periodBudgets.length ? `<div class="budget-overview">
+    <div class="rttl" style="margin-bottom:.75rem;">Resumen del presupuesto</div>
+    ${totalBudgetOut > 0 ? `<div class="budget-overview-row">
+      <span class="budget-overview-lbl">Salidas presupuestadas</span>
+      <span class="budget-overview-val">${fmt(totalBudgetOut)}</span>
+    </div>
+    <div class="budget-overview-row">
+      <span class="budget-overview-lbl">Salidas reales</span>
+      <span class="budget-overview-val ${totalRealOut>totalBudgetOut?'sval n':'sval p'}">${fmt(totalRealOut)}</span>
+    </div>` : ''}
+    ${totalBudgetIn > 0 ? `<div class="budget-overview-row">
+      <span class="budget-overview-lbl">Entradas presupuestadas</span>
+      <span class="budget-overview-val">${fmt(totalBudgetIn)}</span>
+    </div>
+    <div class="budget-overview-row">
+      <span class="budget-overview-lbl">Entradas reales</span>
+      <span class="budget-overview-val ${totalRealIn<totalBudgetIn?'sval n':'sval p'}">${fmt(totalRealIn)}</span>
+    </div>` : ''}
+  </div>` : '';
+
+  document.getElementById('budget-overview').innerHTML = overviewHTML;
+
+  // Per-category cards
+  if (!periodBudgets.length) {
+    document.getElementById('budget-list').innerHTML =
+      '<div class="budget-empty">Sin presupuestos para este período.<br>Toca "+ Agregar presupuesto" para comenzar.</div>';
+    return;
+  }
+
+  document.getElementById('budget-list').innerHTML = periodBudgets.map(b => {
+    // Sum real spending for this category in this period
+    const real = filtered
+      .filter(x => x.type === b.type && x.category === b.category)
+      .reduce((s,x) => s + Number(x.amount), 0);
+    const pct  = b.amount > 0 ? Math.min(Math.round(real / b.amount * 100), 100) : 0;
+    const over = b.type === 'out' ? real > b.amount : real < b.amount;
+    const barColor = over ? '#ef4444' : (pct > 80 ? '#f59e0b' : '#10b981');
+    const statusTxt = b.type === 'out'
+      ? (over ? `Excedido por ${fmt(real - b.amount)}` : `Disponible: ${fmt(b.amount - real)}`)
+      : (real >= b.amount ? `✅ Meta alcanzada` : `Faltan: ${fmt(b.amount - real)}`);
+
+    return `<div class="bcard">
+      <div class="bcard-top">
+        <div>
+          <div class="bcard-name">${b.category}</div>
+          <span class="bcard-type ${b.type}">${b.type==='in'?'Entrada':'Salida'}</span>
+        </div>
+        <div class="bcard-amounts">
+          <div class="bcard-real ${over?'over':'ok'}">${fmt(real)}</div>
+          <div class="bcard-limit">de ${fmt(b.amount)}</div>
+        </div>
+      </div>
+      <div class="bcard-bar-track">
+        <div class="bcard-bar-fill" style="width:${pct}%;background:${barColor};"></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <div class="bcard-pct" style="color:${over?'#dc2626':(pct>80?'#d97706':'#9ca3af')}">${statusTxt}</div>
+        <div class="bcard-pct">${pct}%</div>
+      </div>
+      <div class="bcard-actions">
+        <button class="bcard-action" onclick="openEditBudget('${b.id}')">✏️ Editar</button>
+        <button class="bcard-action del" onclick="deleteBudget('${b.id}')">🗑️ Eliminar</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function openBudgetModal() {
+  EDIT_BUDGET_ID = null;
+  BM_TYPE = 'out';
+  document.getElementById('bm-title').textContent = 'Nuevo presupuesto';
+  document.getElementById('bm-amt').value = '';
+  document.getElementById('bm-period').value = BUDGET_PERIOD;
+  document.getElementById('bm-save').textContent = 'Guardar presupuesto';
+  document.getElementById('bm-delete').style.display = 'none';
+  setBudgetType('out');
+  document.getElementById('budget-overlay').classList.add('on');
+}
+
+function openEditBudget(id) {
+  const b = BUDGETS.find(x => x.id === id);
+  if (!b) return;
+  EDIT_BUDGET_ID = id;
+  BM_TYPE = b.type;
+  document.getElementById('bm-title').textContent = 'Editar presupuesto';
+  document.getElementById('bm-amt').value = b.amount;
+  document.getElementById('bm-period').value = b.period;
+  document.getElementById('bm-save').textContent = 'Guardar cambios';
+  document.getElementById('bm-delete').style.display = 'block';
+  setBudgetType(b.type);
+  setTimeout(() => { document.getElementById('bm-cat').value = b.category; }, 50);
+  document.getElementById('budget-overlay').classList.add('on');
+}
+
+function closeBudgetModal() { document.getElementById('budget-overlay').classList.remove('on'); }
+function closeBudgetOuter(e) { if (e.target === document.getElementById('budget-overlay')) closeBudgetModal(); }
+function deleteBudgetFromModal() { if (EDIT_BUDGET_ID) { deleteBudget(EDIT_BUDGET_ID); closeBudgetModal(); } }
+
+function setBudgetType(t) {
+  BM_TYPE = t;
+  document.getElementById('bm-in').className  = 'bm-type-btn' + (t==='in'?' ti':'');
+  document.getElementById('bm-out').className = 'bm-type-btn' + (t==='out'?' to':'');
+  document.getElementById('bm-new-cat').value = '';
+  refreshBudgetCatSelect();
+}
+
+function refreshBudgetCatSelect() {
+  // Uses same shared getSmartCats — categories are unified
+  const allCats = getSmartCats(BM_TYPE).map(c => c.name);
+  const current = document.getElementById('bm-cat').value;
+  document.getElementById('bm-cat').innerHTML = allCats.map(n =>
+    `<option value="${n}" ${n===current?'selected':''}>${n}</option>`
+  ).join('');
+}
+
+function addBudgetCat() {
+  const inp  = document.getElementById('bm-new-cat');
+  const name = inp.value.trim();
+  if (!name) return;
+  const norm = name.toLowerCase();
+  // Check duplicates across defaults and custom — shared with transaction modal
+  const alreadyDefault = CATS[BM_TYPE].find(c => c[1].toLowerCase() === norm);
+  const alreadyCustom  = (CUSTOM_CATS[BM_TYPE]||[]).find(c => c.toLowerCase() === norm);
+  if (!alreadyDefault && !alreadyCustom) {
+    if (!CUSTOM_CATS[BM_TYPE]) CUSTOM_CATS[BM_TYPE] = [];
+    CUSTOM_CATS[BM_TYPE].push(name);
+    saveCustomCats(); // saves to localStorage — shared with transaction modal
+  }
+  inp.value = '';
+  refreshBudgetCatSelect();
+  // Select the new cat
+  const finalName = alreadyDefault ? alreadyDefault[1] : (alreadyCustom || name);
+  document.getElementById('bm-cat').value = finalName;
+}
+
+function saveBudget() {
+  const cat    = document.getElementById('bm-cat').value;
+  const amount = parseFloat(document.getElementById('bm-amt').value);
+  const period = document.getElementById('bm-period').value;
+  if (!cat || !amount || amount <= 0) return;
+
+  if (EDIT_BUDGET_ID) {
+    const idx = BUDGETS.findIndex(b => b.id === EDIT_BUDGET_ID);
+    if (idx !== -1) BUDGETS[idx] = { ...BUDGETS[idx], type: BM_TYPE, category: cat, amount, period };
+  } else {
+    // Check for duplicate
+    const exists = BUDGETS.find(b => b.category === cat && b.type === BM_TYPE && b.period === period);
+    if (exists) {
+      exists.amount = amount; // update instead of duplicate
+    } else {
+      BUDGETS.push({ id: Date.now().toString(), type: BM_TYPE, category: cat, amount, period });
+    }
+  }
+  saveBudgets();
+  closeBudgetModal();
+  renderBudget();
+}
+
+function deleteBudget(id) {
+  BUDGETS = BUDGETS.filter(b => b.id !== id);
+  saveBudgets();
+  renderBudget();
+}
 
 // ══ TOGGLE PASSWORD VISIBILITY ══
 function togglePass(inputId, btn) {
@@ -568,6 +860,7 @@ async function loadApp() {
     new Date().toLocaleDateString('es-PA', {weekday:'short', day:'numeric', month:'short'});
   await loadTxs();
   loadCustomCats();
+  loadBudgets();
   REP_CATS_IN_OPEN = false;
   REP_CATS_OUT_OPEN = false;
   renderAll();
@@ -897,12 +1190,13 @@ function goTab(name, el) {
   document.querySelectorAll('.ntab').forEach(t=>t.classList.remove('on'));
   document.getElementById('panel-'+name).classList.add('on');
   el.classList.add('on');
-  if (name==='hist') renderHist();
-  if (name==='rep')  renderRep();
+  if (name==='hist')   renderHist();
+  if (name==='rep')    { renderRep(); renderChart(); }
+  if (name==='budget') renderBudget();
 }
 function goTabByName(name) {
   const tabs = document.querySelectorAll('.ntab');
-  const map = {home:0, hist:1, rep:2};
+  const map = {home:0, hist:1, rep:2, budget:3};
   goTab(name, tabs[map[name]]);
 }
 
