@@ -251,6 +251,11 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:#f3f4f6;color:
 .sheet-btn.edit{background:#eff6ff;color:#1d4ed8;}
 .sheet-btn.del{background:#fff1f2;color:#dc2626;}
 .sheet-btn.cancel{background:#f3f4f6;color:#6b7280;}
+/* Icon picker */
+.icon-picker{display:flex;flex-wrap:wrap;gap:5px;margin:.5rem 0 .875rem;max-height:140px;overflow-y:auto;}
+.ico-opt{width:36px;height:36px;border-radius:8px;border:1.5px solid #e5e7eb;display:flex;align-items:center;justify-content:center;font-size:18px;cursor:pointer;}
+.ico-opt.sel{border-color:#064e3b;background:#ecfdf5;}
+
 /* Edit category modal */
 .edit-cat-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:500;display:none;align-items:center;justify-content:center;padding:1.25rem;}
 .edit-cat-overlay.on{display:flex;}
@@ -498,7 +503,7 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:#f3f4f6;color:
     <div class="cats" id="m-cats"></div>
     <div class="custom-cat-wrap">
       <input class="custom-cat-inp" id="custom-cat-inp" type="text" placeholder="+ Nueva categoría..." maxlength="24">
-      <button class="custom-cat-btn" onclick="addCustomCat()">Agregar</button>
+      <button class="custom-cat-btn" onclick="openNewCatPicker()">+</button>
     </div>
     <div id="custom-cat-list" style="margin-top:.5rem;"></div>
     <label class="lbl" style="margin-top:.75rem;">Descripción (opcional)</label>
@@ -511,11 +516,14 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:#f3f4f6;color:
 <!-- ══ EDIT CATEGORY ══ -->
 <div class="edit-cat-overlay" id="edit-cat-overlay" onclick="closeEditCatOuter(event)">
   <div class="edit-cat-box">
-    <div class="edit-cat-ttl">Editar categoría</div>
-    <label class="lbl">Nombre actual</label>
-    <input class="inp" id="edit-cat-old" readonly style="background:#f3f4f6;color:#6b7280;margin-bottom:.875rem;">
-    <label class="lbl">Nuevo nombre</label>
-    <input class="inp" id="edit-cat-new" type="text" maxlength="24" placeholder="Escribe el nuevo nombre">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
+      <div class="edit-cat-ttl" style="margin-bottom:0;">Editar categoría</div>
+      <button onclick="confirmDeleteCat()" style="border:none;background:#fff1f2;color:#dc2626;border-radius:8px;padding:5px 10px;font-size:12px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;">🗑️ Eliminar</button>
+    </div>
+    <label class="lbl">Ícono</label>
+    <div class="icon-picker" id="edit-cat-icons"></div>
+    <label class="lbl">Nombre</label>
+    <input class="inp" id="edit-cat-new" type="text" maxlength="24" placeholder="Escribe el nombre">
     <div class="err" id="edit-cat-err"></div>
     <div style="display:flex;gap:8px;margin-top:.875rem;">
       <button class="btn" onclick="closeEditCat()" style="background:#f3f4f6;color:#374151;flex:1;">Cancelar</button>
@@ -694,7 +702,7 @@ function openEditBudget(id) {
 
 function closeBudgetModal() { document.getElementById('budget-overlay').classList.remove('on'); }
 function closeBudgetOuter(e) { if (e.target === document.getElementById('budget-overlay')) closeBudgetModal(); }
-function deleteBudgetFromModal() { if (EDIT_BUDGET_ID) { deleteBudget(EDIT_BUDGET_ID); closeBudgetModal(); } }
+function deleteBudgetFromModal() { if (EDIT_BUDGET_ID) { closeBudgetModal(); deleteBudget(EDIT_BUDGET_ID); } }
 
 function setBudgetType(t) {
   BM_TYPE = t;
@@ -757,9 +765,17 @@ function saveBudget() {
 }
 
 function deleteBudget(id) {
-  BUDGETS = BUDGETS.filter(b => b.id !== id);
-  saveBudgets();
-  renderBudget();
+  // Show confirmation before deleting
+  document.getElementById('confirm-overlay').classList.add('on');
+  document.querySelector('.confirm-ttl').textContent = '¿Eliminar presupuesto?';
+  document.querySelector('.confirm-msg').textContent = 'Esta acción no se puede deshacer.';
+  document.getElementById('confirm-yes-btn').onclick = () => {
+    closeConfirm();
+    BUDGETS = BUDGETS.filter(b => b.id !== id);
+    saveBudgets();
+    renderBudget();
+    closeBudgetModal();
+  };
 }
 
 // ══ TOGGLE PASSWORD VISIBILITY ══
@@ -1237,7 +1253,7 @@ function getSmartCats(t) {
 
   // Defaults (excluding 'Otros') + custom cats
   const defaults = CATS[t].filter(([,n]) => n !== 'Otros').map(([ico, name]) => ({ ico, name }));
-  const customs  = (CUSTOM_CATS[t] || []).map(name => ({ ico: '🏷️', name }));
+  const customs = (CUSTOM_CATS[t] || []).map(c => typeof c === 'string' ? {ico:'🏷️', name:c} : c);
 
   // Merge unique
   const all = [...defaults];
@@ -1338,8 +1354,9 @@ function loadCustomCats() {
     const stored = localStorage.getItem(key);
     if (stored) {
       const parsed = JSON.parse(stored);
-      // Merge with existing to preserve defaults structure
-      CUSTOM_CATS = { in: parsed.in || [], out: parsed.out || [] };
+      // Migrate old string format to object format {name, ico}
+      const migrate = arr => (arr||[]).map(c => typeof c === 'string' ? {name:c, ico:'🏷️'} : c);
+      CUSTOM_CATS = { in: migrate(parsed.in), out: migrate(parsed.out) };
     }
   } catch(e) { CUSTOM_CATS = { in: [], out: [] }; }
 }
@@ -1355,12 +1372,34 @@ function saveCustomCats() {
 let EDIT_CAT_TYPE = null;
 let EDIT_CAT_OLD  = null;
 
+function renderIconPicker(containerId, selectedIco, onChange) {
+  const el = document.getElementById(containerId);
+  if (!el) return;
+  el.innerHTML = CAT_ICONS_LIST.map(ico =>
+    `<div class="ico-opt${ico===selectedIco?' sel':''}" onclick="selectIco(this,'${containerId}','${ico}')">${ico}</div>`
+  ).join('');
+  el._onChange = onChange;
+}
+function selectIco(el, containerId, ico) {
+  document.querySelectorAll(`#${containerId} .ico-opt`).forEach(e=>e.classList.remove('sel'));
+  el.classList.add('sel');
+  const container = document.getElementById(containerId);
+  if (container._onChange) container._onChange(ico);
+  NEW_CAT_ICO = ico;
+}
+
 function openEditCat(type, oldName) {
   EDIT_CAT_TYPE = type;
   EDIT_CAT_OLD  = oldName;
-  document.getElementById('edit-cat-old').value = oldName;
+  const existing = (CUSTOM_CATS[type]||[]).find(c=>(c.name||c)===oldName);
+  const currentIco = existing?.ico || '🏷️';
+  NEW_CAT_ICO = currentIco;
   document.getElementById('edit-cat-new').value = oldName;
   document.getElementById('edit-cat-err').textContent = '';
+  renderIconPicker('edit-cat-icons', currentIco, (ico) => { NEW_CAT_ICO = ico; });
+  // Show delete btn for existing cat
+  document.querySelector('.edit-cat-box button[onclick="confirmDeleteCat()"]').style.display = 'block';
+  document.querySelector('.edit-cat-box .edit-cat-ttl').textContent = 'Editar categoría';
   document.getElementById('edit-cat-overlay').classList.add('on');
   setTimeout(() => document.getElementById('edit-cat-new').focus(), 100);
 }
@@ -1372,27 +1411,55 @@ function saveEditCat() {
   const errEl   = document.getElementById('edit-cat-err');
   errEl.textContent = '';
   if (!newName) { errEl.textContent = 'Escribe un nombre.'; return; }
-  if (newName === EDIT_CAT_OLD) { closeEditCat(); return; }
-  // Check duplicate
+
+  // If EDIT_CAT_OLD is null, this is a NEW category (called from openNewCatPicker)
+  if (EDIT_CAT_OLD === null) { addCustomCat(); return; }
+
+  if (newName === EDIT_CAT_OLD && NEW_CAT_ICO === ((CUSTOM_CATS[EDIT_CAT_TYPE]||[]).find(c=>(c.name||c)===EDIT_CAT_OLD)?.ico||'🏷️')) {
+    closeEditCat(); return;
+  }
+  // Check duplicate name
   const norm = newName.toLowerCase();
   const dupDefault = CATS[EDIT_CAT_TYPE].find(c => c[1].toLowerCase() === norm && c[1] !== EDIT_CAT_OLD);
-  const dupCustom  = (CUSTOM_CATS[EDIT_CAT_TYPE]||[]).find(c => c.toLowerCase() === norm && c !== EDIT_CAT_OLD);
+  const dupCustom  = (CUSTOM_CATS[EDIT_CAT_TYPE]||[]).find(c => (c.name||c).toLowerCase() === norm && (c.name||c) !== EDIT_CAT_OLD);
   if (dupDefault || dupCustom) { errEl.textContent = 'Ya existe una categoría con ese nombre.'; return; }
-  // Update custom cats list
-  const idx = (CUSTOM_CATS[EDIT_CAT_TYPE]||[]).indexOf(EDIT_CAT_OLD);
-  if (idx !== -1) CUSTOM_CATS[EDIT_CAT_TYPE][idx] = newName;
+  // Update in custom cats (object format)
+  const arr = CUSTOM_CATS[EDIT_CAT_TYPE] || [];
+  const idx = arr.findIndex(c => (c.name||c) === EDIT_CAT_OLD);
+  if (idx !== -1) arr[idx] = { name: newName, ico: NEW_CAT_ICO };
   saveCustomCats();
-  // Update all existing transactions with old category name
-  TXS.forEach(tx => {
-    if (tx.type === EDIT_CAT_TYPE && tx.category === EDIT_CAT_OLD) tx.category = newName;
-  });
+  // Update transactions
+  TXS.forEach(tx => { if (tx.type===EDIT_CAT_TYPE && tx.category===EDIT_CAT_OLD) tx.category = newName; });
   localStorage.setItem('cc_txs', JSON.stringify(TXS));
-  // Update budgets too
-  BUDGETS.forEach(b => {
-    if (b.type === EDIT_CAT_TYPE && b.category === EDIT_CAT_OLD) b.category = newName;
-  });
+  // Update budgets
+  BUDGETS.forEach(b => { if (b.type===EDIT_CAT_TYPE && b.category===EDIT_CAT_OLD) b.category = newName; });
   saveBudgets();
   closeEditCat();
+  renderAll();
+  renderCatsGrid();
+  renderCustomCatList();
+}
+
+function confirmDeleteCat() {
+  const name = EDIT_CAT_OLD;
+  closeEditCat();
+  // Reuse confirm overlay
+  document.getElementById('confirm-overlay').classList.add('on');
+  document.querySelector('.confirm-ttl').textContent = '¿Eliminar categoría?';
+  document.querySelector('.confirm-msg').textContent = `Se eliminará "${name}". Las transacciones con esta categoría pasarán a "Otros".`;
+  document.getElementById('confirm-yes-btn').onclick = () => doDeleteCat(EDIT_CAT_TYPE, name);
+}
+
+function doDeleteCat(type, name) {
+  closeConfirm();
+  CUSTOM_CATS[type] = (CUSTOM_CATS[type]||[]).filter(c => (c.name||c) !== name);
+  saveCustomCats();
+  // Move transactions to Otros
+  TXS.forEach(tx => { if (tx.type===type && tx.category===name) tx.category = 'Otros'; });
+  localStorage.setItem('cc_txs', JSON.stringify(TXS));
+  // Remove budgets with this category
+  BUDGETS = BUDGETS.filter(b => !(b.type===type && b.category===name));
+  saveBudgets();
   renderAll();
   renderCatsGrid();
   renderCustomCatList();
