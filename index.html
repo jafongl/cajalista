@@ -517,8 +517,8 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:#f3f4f6;color:
 <div class="edit-cat-overlay" id="edit-cat-overlay" onclick="closeEditCatOuter(event)">
   <div class="edit-cat-box">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
-      <div class="edit-cat-ttl" style="margin-bottom:0;">Editar categoría</div>
-      <button onclick="confirmDeleteCat()" style="border:none;background:#fff1f2;color:#dc2626;border-radius:8px;padding:5px 10px;font-size:12px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;">🗑️ Eliminar</button>
+      <div class="edit-cat-ttl" id="edit-cat-title" style="margin-bottom:0;">Editar categoría</div>
+      <button id="edit-cat-delete-btn" onclick="confirmDeleteCat()" style="border:none;background:#fff1f2;color:#dc2626;border-radius:8px;padding:5px 10px;font-size:12px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;">🗑️ Eliminar</button>
     </div>
     <label class="lbl">Ícono</label>
     <div class="icon-picker" id="edit-cat-icons"></div>
@@ -1326,26 +1326,40 @@ function pickCat(name) {
   renderCatsGrid(name);
 }
 
-function addCustomCat() {
+function openNewCatPicker() {
   const inp  = document.getElementById('custom-cat-inp');
   const name = inp.value.trim();
-  if (!name) return;
-  if (!CUSTOM_CATS[TYPE]) CUSTOM_CATS[TYPE] = [];
+  if (!name) { inp.focus(); return; }
   const norm = name.toLowerCase();
   const alreadyDefault = CATS[TYPE].find(c => c[1].toLowerCase() === norm);
-  const alreadyCustom  = (CUSTOM_CATS[TYPE]||[]).find(c => c.toLowerCase() === norm);
+  const alreadyCustom  = (CUSTOM_CATS[TYPE]||[]).find(c => (c.name||c).toLowerCase() === norm);
   if (alreadyDefault || alreadyCustom) {
-    // Already exists — just select it, don't add duplicate
-    CAT = alreadyDefault ? alreadyDefault[1] : alreadyCustom;
-  } else {
-    if (!CUSTOM_CATS[TYPE]) CUSTOM_CATS[TYPE] = [];
-    CUSTOM_CATS[TYPE].push(name);
-    saveCustomCats();
-    CAT = name;
+    CAT = alreadyDefault ? alreadyDefault[1] : (alreadyCustom?.name || alreadyCustom);
+    inp.value = ''; SHOW_ALL_CATS = false; renderCatsGrid(CAT); return;
   }
-  inp.value = '';
+  NEW_CAT_ICO = '🏷️';
+  EDIT_CAT_TYPE = TYPE; EDIT_CAT_OLD = null;
+  document.getElementById('edit-cat-new').value = name;
+  document.getElementById('edit-cat-err').textContent = '';
+  renderIconPicker('edit-cat-icons', NEW_CAT_ICO, ico => { NEW_CAT_ICO = ico; });
+  document.getElementById('edit-cat-delete-btn').style.display = 'none';
+  document.getElementById('edit-cat-title').textContent = 'Nueva categoría';
+  document.getElementById('edit-cat-overlay').classList.add('on');
+}
+
+function addCustomCat() {
+  // Called when saving a new category from the icon picker modal
+  const name = document.getElementById('edit-cat-new').value.trim();
+  if (!name) return;
+  if (!CUSTOM_CATS[TYPE]) CUSTOM_CATS[TYPE] = [];
+  CUSTOM_CATS[TYPE].push({ name, ico: NEW_CAT_ICO });
+  saveCustomCats();
+  CAT = name;
+  document.getElementById('custom-cat-inp').value = '';
   SHOW_ALL_CATS = false;
+  closeEditCat();
   renderCatsGrid(CAT);
+  renderCustomCatList();
 }
 
 function loadCustomCats() {
@@ -1397,9 +1411,8 @@ function openEditCat(type, oldName) {
   document.getElementById('edit-cat-new').value = oldName;
   document.getElementById('edit-cat-err').textContent = '';
   renderIconPicker('edit-cat-icons', currentIco, (ico) => { NEW_CAT_ICO = ico; });
-  // Show delete btn for existing cat
-  document.querySelector('.edit-cat-box button[onclick="confirmDeleteCat()"]').style.display = 'block';
-  document.querySelector('.edit-cat-box .edit-cat-ttl').textContent = 'Editar categoría';
+  document.getElementById('edit-cat-delete-btn').style.display = 'block';
+  document.getElementById('edit-cat-title').textContent = 'Editar categoría';
   document.getElementById('edit-cat-overlay').classList.add('on');
   setTimeout(() => document.getElementById('edit-cat-new').focus(), 100);
 }
@@ -1524,13 +1537,7 @@ function txTouchEnd(e, id) {
 }
 
 // ══ PASSWORD VISIBILITY TOGGLE ══
-function togglePass(inputId, btn) {
-  const inp = document.getElementById(inputId);
-  if (!inp) return;
-  const isHidden = inp.type === 'password';
-  inp.type = isHidden ? 'text' : 'password';
-  btn.textContent = isHidden ? '🙈' : '👁️';
-}
+
 
 // ══ OFFLINE ══
 window.addEventListener('online',  ()=>{ document.getElementById('offline-bar').classList.remove('on'); syncPending(); });
