@@ -502,8 +502,9 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:#f3f4f6;color:
     <div class="cats-section-lbl" id="cats-section-lbl">Más usadas</div>
     <div class="cats" id="m-cats"></div>
     <div class="custom-cat-wrap">
-      <input class="custom-cat-inp" id="custom-cat-inp" type="text" placeholder="+ Nueva categoría..." maxlength="24">
-      <button class="custom-cat-btn" onclick="openNewCatPicker()">+</button>
+      <button type="button" class="custom-cat-btn" onclick="openNewCatPicker()" style="width:100%;justify-content:center;display:flex;align-items:center;gap:6px;">
+        <span style="font-size:16px;">+</span> Nueva categoría
+      </button>
     </div>
     <div id="custom-cat-list" style="margin-top:.5rem;"></div>
     <label class="lbl" style="margin-top:.75rem;">Descripción (opcional)</label>
@@ -1327,35 +1328,36 @@ function pickCat(name) {
 }
 
 function openNewCatPicker() {
-  const inp  = document.getElementById('custom-cat-inp');
-  const name = inp.value.trim();
-  if (!name) { inp.focus(); return; }
-  const norm = name.toLowerCase();
-  const alreadyDefault = CATS[TYPE].find(c => c[1].toLowerCase() === norm);
-  const alreadyCustom  = (CUSTOM_CATS[TYPE]||[]).find(c => (c.name||c).toLowerCase() === norm);
-  if (alreadyDefault || alreadyCustom) {
-    CAT = alreadyDefault ? alreadyDefault[1] : (alreadyCustom?.name || alreadyCustom);
-    inp.value = ''; SHOW_ALL_CATS = false; renderCatsGrid(CAT); return;
-  }
+  // Open the new category modal directly — name is typed inside
   NEW_CAT_ICO = '🏷️';
   EDIT_CAT_TYPE = TYPE; EDIT_CAT_OLD = null;
-  document.getElementById('edit-cat-new').value = name;
+  document.getElementById('edit-cat-new').value = '';
   document.getElementById('edit-cat-err').textContent = '';
   renderIconPicker('edit-cat-icons', NEW_CAT_ICO, ico => { NEW_CAT_ICO = ico; });
   document.getElementById('edit-cat-delete-btn').style.display = 'none';
   document.getElementById('edit-cat-title').textContent = 'Nueva categoría';
   document.getElementById('edit-cat-overlay').classList.add('on');
+  setTimeout(() => document.getElementById('edit-cat-new').focus(), 200);
 }
 
 function addCustomCat() {
-  // Called when saving a new category from the icon picker modal
-  const name = document.getElementById('edit-cat-new').value.trim();
-  if (!name) return;
+  const nameEl = document.getElementById('edit-cat-new');
+  const errEl  = document.getElementById('edit-cat-err');
+  const name   = nameEl.value.trim();
+  errEl.textContent = '';
+  if (!name) { errEl.textContent = 'Escribe un nombre.'; nameEl.focus(); return; }
+  const norm = name.toLowerCase();
+  const alreadyDefault = CATS[TYPE].find(c => c[1].toLowerCase() === norm);
+  const alreadyCustom  = (CUSTOM_CATS[TYPE]||[]).find(c => (c.name||c).toLowerCase() === norm);
+  if (alreadyDefault || alreadyCustom) {
+    errEl.textContent = 'Ya existe esta categoría.';
+    CAT = alreadyDefault ? alreadyDefault[1] : (alreadyCustom?.name || alreadyCustom);
+    closeEditCat(); renderCatsGrid(CAT); return;
+  }
   if (!CUSTOM_CATS[TYPE]) CUSTOM_CATS[TYPE] = [];
   CUSTOM_CATS[TYPE].push({ name, ico: NEW_CAT_ICO });
   saveCustomCats();
   CAT = name;
-  document.getElementById('custom-cat-inp').value = '';
   SHOW_ALL_CATS = false;
   closeEditCat();
   renderCatsGrid(CAT);
