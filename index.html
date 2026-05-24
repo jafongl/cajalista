@@ -556,6 +556,9 @@ let EDIT_ID = null;
 let SHEET_TX = null;
 let CUSTOM_CATS = { in: [], out: [] };
 
+// Icon picker state
+let NEW_CAT_ICO = '🏷️';
+
 const DIAS = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
 const CATS = {
   in:  [['🛍️','Ventas'],['🔧','Servicios'],['💵','Cobros'],['🏦','Préstamo'],['🎁','Otros']],
@@ -1277,7 +1280,8 @@ function setType(t) {
   TYPE = t; CAT = ''; SHOW_ALL_CATS = false;
   document.getElementById('t-in').className  = 'tbtn'+(t==='in'?' ti':'');
   document.getElementById('t-out').className = 'tbtn'+(t==='out'?' to':'');
-  document.getElementById('custom-cat-inp').value = '';
+  const inp = document.getElementById('custom-cat-inp');
+  if (inp) inp.value = '';
   renderCatsGrid();
   renderCustomCatList();
 }
