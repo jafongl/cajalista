@@ -501,9 +501,9 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:#f3f4f6;color:
     <label class="lbl" style="margin-bottom:6px;">Categoría</label>
     <div class="cats-section-lbl" id="cats-section-lbl">Más usadas</div>
     <div class="cats" id="m-cats"></div>
-    <div onclick="openNewCatPicker()" style="display:flex;align-items:center;gap:8px;padding:.65rem .875rem;border:1.5px dashed #10b981;border-radius:10px;cursor:pointer;background:#f9fafb;margin-top:4px;-webkit-tap-highlight-color:rgba(16,185,129,.15);">
-      <span style="font-size:20px;color:#10b981;font-weight:300;line-height:1;">+</span>
-      <span style="font-size:13px;font-weight:500;color:#065f46;">Nueva categoría</span>
+    <div class="custom-cat-wrap" style="margin-top:4px;">
+      <input class="custom-cat-inp" id="custom-cat-inp" type="text" placeholder="Nombre de categoría..." maxlength="24">
+      <button type="button" class="custom-cat-btn" onclick="openNewCatPicker()">+ Crear</button>
     </div>
     <div id="custom-cat-list" style="margin-top:.5rem;"></div>
     <label class="lbl" style="margin-top:.75rem;">Descripción (opcional)</label>
@@ -1331,14 +1331,27 @@ function pickCat(name) {
 }
 
 function openNewCatPicker() {
+  // Pre-fill name if user typed in the input
+  const inp = document.getElementById('custom-cat-inp');
+  const typed = inp ? inp.value.trim() : '';
+  // Check duplicate before opening
+  if (typed) {
+    const norm = typed.toLowerCase();
+    const alreadyDefault = CATS[TYPE].find(c => c[1].toLowerCase() === norm);
+    const alreadyCustom  = (CUSTOM_CATS[TYPE]||[]).find(c => (c.name||c).toLowerCase() === norm);
+    if (alreadyDefault || alreadyCustom) {
+      CAT = alreadyDefault ? alreadyDefault[1] : (alreadyCustom?.name || alreadyCustom);
+      if (inp) inp.value = '';
+      SHOW_ALL_CATS = false; renderCatsGrid(CAT); return;
+    }
+  }
   NEW_CAT_ICO = '🏷️';
   EDIT_CAT_TYPE = TYPE; EDIT_CAT_OLD = null;
-  document.getElementById('edit-cat-new').value = '';
+  document.getElementById('edit-cat-new').value = typed;
   document.getElementById('edit-cat-err').textContent = '';
   renderIconPicker('edit-cat-icons', NEW_CAT_ICO, ico => { NEW_CAT_ICO = ico; });
   document.getElementById('edit-cat-delete-btn').style.display = 'none';
   document.getElementById('edit-cat-title').textContent = 'Nueva categoría';
-  // Bring edit-cat-overlay above everything
   document.getElementById('edit-cat-overlay').style.zIndex = '1000';
   document.getElementById('edit-cat-overlay').classList.add('on');
   setTimeout(() => document.getElementById('edit-cat-new').focus(), 200);
