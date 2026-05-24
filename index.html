@@ -257,7 +257,7 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:#f3f4f6;color:
 .ico-opt.sel{border-color:#064e3b;background:#ecfdf5;}
 
 /* Edit category modal */
-.edit-cat-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:500;display:none;align-items:center;justify-content:center;padding:1.25rem;}
+.edit-cat-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:1000;display:none;align-items:center;justify-content:center;padding:1.25rem;}
 .edit-cat-overlay.on{display:flex;}
 .edit-cat-box{background:#fff;border-radius:16px;padding:1.5rem;width:100%;max-width:320px;}
 .edit-cat-ttl{font-size:16px;font-weight:500;margin-bottom:1rem;}
@@ -1332,7 +1332,6 @@ function pickCat(name) {
 }
 
 function openNewCatPicker() {
-  // Open the new category modal directly — name is typed inside
   NEW_CAT_ICO = '🏷️';
   EDIT_CAT_TYPE = TYPE; EDIT_CAT_OLD = null;
   document.getElementById('edit-cat-new').value = '';
@@ -1340,6 +1339,8 @@ function openNewCatPicker() {
   renderIconPicker('edit-cat-icons', NEW_CAT_ICO, ico => { NEW_CAT_ICO = ico; });
   document.getElementById('edit-cat-delete-btn').style.display = 'none';
   document.getElementById('edit-cat-title').textContent = 'Nueva categoría';
+  // Bring edit-cat-overlay above everything
+  document.getElementById('edit-cat-overlay').style.zIndex = '1000';
   document.getElementById('edit-cat-overlay').classList.add('on');
   setTimeout(() => document.getElementById('edit-cat-new').focus(), 200);
 }
@@ -1422,7 +1423,10 @@ function openEditCat(type, oldName) {
   document.getElementById('edit-cat-overlay').classList.add('on');
   setTimeout(() => document.getElementById('edit-cat-new').focus(), 100);
 }
-function closeEditCat() { document.getElementById('edit-cat-overlay').classList.remove('on'); }
+function closeEditCat() {
+  document.getElementById('edit-cat-overlay').classList.remove('on');
+  document.getElementById('edit-cat-overlay').style.zIndex = '';
+}
 function closeEditCatOuter(e) { if (e.target===document.getElementById('edit-cat-overlay')) closeEditCat(); }
 
 function saveEditCat() {
