@@ -1298,13 +1298,14 @@ function renderCatsGrid(selectedCat) {
   const lbl = document.getElementById('cats-section-lbl');
   if (lbl) lbl.textContent = hasUsage ? 'Más usadas' : 'Categorías';
 
-  const catHTML = visible.map(({ico, name}) => {
-    const safeName = name.replace(/'/g, "\'");
+  const catHTML = visible.map(({ico, name}, idx) => {
     const selClass = sel === name ? (TYPE==='in'?' ci':' co') : '';
-    return `<div class="cat${selClass}" onclick="pickCat('${safeName}')">
+    return `<div class="cat${selClass}" data-cat="${idx}" onclick="pickCatByIdx(${idx})">
       ${ico}<br><span style="font-size:10px;line-height:1.3;">${name}</span>
     </div>`;
   }).join('');
+  // Store visible cats for pickCatByIdx
+  window._visibleCats = visible;
 
   // "Ver más / Ver menos" button as 9th slot when needed
   const moreBtn = (!SHOW_ALL_CATS && hasMore)
@@ -1328,6 +1329,10 @@ function toggleAllCats() {
 function pickCat(name) {
   CAT = name;
   renderCatsGrid(name);
+}
+function pickCatByIdx(idx) {
+  const cats = window._visibleCats || [];
+  if (cats[idx]) { CAT = cats[idx].name; renderCatsGrid(CAT); }
 }
 
 function openNewCatPicker() {
@@ -1438,6 +1443,12 @@ function openEditCat(type, oldName) {
 function closeEditCat() {
   document.getElementById('edit-cat-overlay').classList.remove('on');
   document.getElementById('edit-cat-overlay').style.zIndex = '';
+}
+function editCustomCatByIdx(btn) {
+  const idx  = parseInt(btn.dataset.idx);
+  const type = btn.dataset.type;
+  const cats = (CUSTOM_CATS[type]||[]).map(c => typeof c==='string' ? {name:c,ico:'🏷️'} : c);
+  if (cats[idx]) openEditCat(type, cats[idx].name);
 }
 function closeEditCatOuter(e) { if (e.target===document.getElementById('edit-cat-overlay')) closeEditCat(); }
 
