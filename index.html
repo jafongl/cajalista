@@ -240,6 +240,9 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:#f3f4f6;color:
 .custom-cat-inp{flex:1;padding:.55rem .75rem;border:1.5px solid #e5e7eb;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:13px;color:#111827;outline:none;background:#fff;}
 .custom-cat-inp:focus{border-color:#10b981;}
 .custom-cat-btn{padding:.55rem .875rem;border:none;border-radius:8px;background:#064e3b;color:#fff;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;cursor:pointer;white-space:nowrap;}
+.ico-btn{width:34px;height:34px;border-radius:8px;border:1.5px solid #e5e7eb;display:flex;align-items:center;justify-content:center;font-size:17px;cursor:pointer;background:#fff;flex-shrink:0;transition:all .1s;}
+.ico-btn.sel{border-color:#064e3b;background:#ecfdf5;}
+.ico-btn:active{transform:scale(.9);}
 
 /* Action sheet */
 .sheet-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:300;display:none;align-items:flex-end;justify-content:center;}
@@ -501,9 +504,16 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:#f3f4f6;color:
     <label class="lbl" style="margin-bottom:6px;">Categoría</label>
     <div class="cats-section-lbl" id="cats-section-lbl">Más usadas</div>
     <div class="cats" id="m-cats"></div>
-    <div class="custom-cat-wrap" style="margin-top:4px;">
-      <input class="custom-cat-inp" id="custom-cat-inp" type="text" placeholder="Nombre de categoría..." maxlength="24">
-      <button type="button" class="custom-cat-btn" onclick="addCatFromInput()">+ Crear</button>
+    <div id="new-cat-section" style="margin-top:6px;">
+      <div class="custom-cat-wrap">
+        <input class="custom-cat-inp" id="custom-cat-inp" type="text" placeholder="+ Nueva categoría..." maxlength="24"
+               oninput="toggleIcoPicker()" onfocus="toggleIcoPicker()">
+        <button type="button" class="custom-cat-btn" onclick="addCatFromInput()">Crear</button>
+      </div>
+      <div id="ico-picker-wrap" style="display:none;margin-top:6px;">
+        <div style="font-size:10px;color:#9ca3af;text-transform:uppercase;letter-spacing:.05em;margin-bottom:5px;">Elige un ícono</div>
+        <div id="ico-picker-grid" style="display:flex;flex-wrap:wrap;gap:5px;"></div>
+      </div>
     </div>
     <div id="custom-cat-list" style="margin-top:.5rem;"></div>
     <label class="lbl" style="margin-top:.75rem;">Descripción (opcional)</label>
@@ -556,7 +566,7 @@ let SHEET_TX = null;
 let CUSTOM_CATS = { in: [], out: [] };
 
 // Icon picker state
-let NEW_CAT_ICO = '🏷️';
+
 
 const DIAS = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
 const CATS = {
@@ -1244,6 +1254,9 @@ function openEditModal(tx) {
 function closeModal() {
   document.getElementById('overlay').classList.remove('on');
   EDIT_ID = null;
+  hideIcoPicker();
+  const inp = document.getElementById('custom-cat-inp');
+  if (inp) inp.value = '';
 }
 function closeOuter(e) { if (e.target===document.getElementById('overlay')) closeModal(); }
 
@@ -1256,7 +1269,7 @@ function getSmartCats(t) {
 
   // Defaults (excluding 'Otros') + custom cats
   const defaults = CATS[t].filter(([,n]) => n !== 'Otros').map(([ico, name]) => ({ ico, name }));
-  const customs = (CUSTOM_CATS[t] || []).map(c => ({ ico:'🏷️', name: typeof c === 'string' ? c : (c.name||c) }));
+  const customs = (CUSTOM_CATS[t] || []).map(c => typeof c === 'string' ? { ico: '🏷️', name: c } : { ico: c.ico || '🏷️', name: c.name || c });
 
   // Merge unique
   const all = [...defaults];
@@ -1362,6 +1375,36 @@ function openNewCatPicker() {
   setTimeout(() => document.getElementById('edit-cat-new').focus(), 200);
 }
 
+const CAT_ICONS_LIST = ['😀', '😎', '🏠', '🚗', '🍔', '🛍️', '💊', '✈️', '🎓', '💻', '📱', '🎮', '🎵', '⚽', '🐶', '🌿', '🔧', '📦', '💡', '💰', '💳', '🏋️', '☕', '🍕', '🛒', '🏥', '📚', '🎨', '🏖️', '🎁', '🍺', '🐾', '⚡', '🌟', '🔑', '🎯', '🏪', '🌮', '💐', '🎪'];
+let NEW_CAT_ICO = '🏷️';
+
+function toggleIcoPicker() {
+  const inp  = document.getElementById('custom-cat-inp');
+  const wrap = document.getElementById('ico-picker-wrap');
+  if (!inp || !wrap) return;
+  if (inp.value.trim()) {
+    wrap.style.display = 'block';
+    renderIcoPicker();
+  } else {
+    wrap.style.display = 'none';
+  }
+}
+
+function renderIcoPicker() {
+  const grid = document.getElementById('ico-picker-grid');
+  if (!grid) return;
+  if (grid.children.length > 0) return; // already rendered
+  grid.innerHTML = CAT_ICONS_LIST.map((ico, i) =>
+    `<div class="ico-btn${ico===NEW_CAT_ICO?' sel':''}" onclick="selectNewCatIco('${ico}',this)">${ico}</div>`
+  ).join('');
+}
+
+function selectNewCatIco(ico, el) {
+  NEW_CAT_ICO = ico;
+  document.querySelectorAll('#ico-picker-grid .ico-btn').forEach(b => b.classList.remove('sel'));
+  el.classList.add('sel');
+}
+
 function addCatFromInput() {
   const inp  = document.getElementById('custom-cat-inp');
   const name = inp ? inp.value.trim() : '';
@@ -1372,16 +1415,27 @@ function addCatFromInput() {
   if (alreadyDefault || alreadyCustom) {
     CAT = alreadyDefault ? alreadyDefault[1] : (typeof alreadyCustom === 'string' ? alreadyCustom : alreadyCustom.name);
     if (inp) inp.value = '';
+    hideIcoPicker();
     SHOW_ALL_CATS = false; renderCatsGrid(CAT); return;
   }
   if (!CUSTOM_CATS[TYPE]) CUSTOM_CATS[TYPE] = [];
-  CUSTOM_CATS[TYPE].push(name);
+  // Store as object with ico
+  CUSTOM_CATS[TYPE].push({ name, ico: NEW_CAT_ICO });
   saveCustomCats();
   CAT = name;
   if (inp) inp.value = '';
+  NEW_CAT_ICO = '🏷️';
+  hideIcoPicker();
   SHOW_ALL_CATS = false;
   renderCatsGrid(CAT);
   renderCustomCatList();
+}
+
+function hideIcoPicker() {
+  const wrap = document.getElementById('ico-picker-wrap');
+  const grid = document.getElementById('ico-picker-grid');
+  if (wrap) wrap.style.display = 'none';
+  if (grid) grid.innerHTML = ''; // reset so next open starts fresh with correct selection
 }
 
 function addCustomCat() {
@@ -1471,8 +1525,8 @@ function closeEditCat() {
 function editCustomCatByIdx(btn) {
   const idx  = parseInt(btn.dataset.idx);
   const type = btn.dataset.type;
-  const cats = CUSTOM_CATS[type] || [];
-  if (cats[idx] !== undefined) openEditCat(type, cats[idx]);
+  const raw  = (CUSTOM_CATS[type] || [])[idx];
+  if (raw !== undefined) openEditCat(type, typeof raw === 'string' ? raw : raw.name);
 }
 function closeEditCatOuter(e) { if (e.target===document.getElementById('edit-cat-overlay')) closeEditCat(); }
 
@@ -1520,7 +1574,7 @@ function confirmDeleteCat(type, name) {
 function doDeleteCat(type, name) {
   closeConfirm();
   // Remove from custom cats (simple string array)
-  CUSTOM_CATS[type] = (CUSTOM_CATS[type] || []).filter(c => c !== name);
+  CUSTOM_CATS[type] = (CUSTOM_CATS[type] || []).filter(c => (typeof c === 'string' ? c : c.name) !== name);
   saveCustomCats();
   // Move transactions to Otros
   TXS.forEach(tx => { if (tx.type === type && tx.category === name) tx.category = 'Otros'; });
@@ -1536,7 +1590,7 @@ function doDeleteCat(type, name) {
 function renderCustomCatList() {
   const el = document.getElementById('custom-cat-list');
   if (!el || !TYPE) return;
-  const cats = (CUSTOM_CATS[TYPE] || []).map(c => typeof c === 'string' ? c : (c.name || c));
+  const cats = (CUSTOM_CATS[TYPE] || []).map(c => typeof c === 'string' ? { name: c, ico: '🏷️' } : { name: c.name || c, ico: c.ico || '🏷️' });
   if (!cats.length) { el.innerHTML = ''; return; }
   const t = TYPE;
   el.innerHTML = `<div style="font-size:10px;color:#9ca3af;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;">Mis categorías</div>` +
