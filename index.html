@@ -528,7 +528,7 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:#f3f4f6;color:
   <div class="edit-cat-box">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
       <div class="edit-cat-ttl" id="edit-cat-title" style="margin-bottom:0;">Editar categoría</div>
-      <button id="edit-cat-delete-btn" onclick="confirmDeleteCat()" style="border:none;background:#fff1f2;color:#dc2626;border-radius:8px;padding:5px 10px;font-size:12px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;">🗑️ Eliminar</button>
+      <button id="edit-cat-delete-btn" onclick="confirmDeleteCatFromModal()" style="border:none;background:#fff1f2;color:#dc2626;border-radius:8px;padding:5px 10px;font-size:12px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;">🗑️ Eliminar</button>
     </div>
     <label class="lbl">Ícono</label>
     <div class="icon-picker" id="edit-cat-icons"></div>
@@ -1470,8 +1470,8 @@ function loadCustomCats() {
     const stored = localStorage.getItem(key);
     if (stored) {
       const parsed = JSON.parse(stored);
-      // Normalize — always store as simple strings
-      const normalize = arr => (arr||[]).map(c => typeof c === 'string' ? c : (c.name || c));
+      // Preserve ico — keep object format {name, ico}, migrate plain strings
+      const normalize = arr => (arr||[]).map(c => typeof c === 'string' ? { name: c, ico: '🏷️' } : { name: c.name || c, ico: c.ico || '🏷️' });
       CUSTOM_CATS = { in: normalize(parsed.in), out: normalize(parsed.out) };
     }
   } catch(e) { CUSTOM_CATS = { in: [], out: [] }; }
@@ -1536,7 +1536,9 @@ function saveEditCat() {
   errEl.textContent = '';
   if (!newName) { errEl.textContent = 'Escribe un nombre.'; return; }
 
-  if (newName === EDIT_CAT_OLD) { closeEditCat(); return; }
+  const existingEntry = (CUSTOM_CATS[EDIT_CAT_TYPE]||[]).find(c=>(c.name||c)===EDIT_CAT_OLD);
+  const existingIco = existingEntry?.ico || '🏷️';
+  if (newName === EDIT_CAT_OLD && NEW_CAT_ICO === existingIco) { closeEditCat(); return; }
   // Check duplicate
   const norm = newName.toLowerCase();
   const dupDefault = CATS[EDIT_CAT_TYPE].find(c => c[1].toLowerCase() === norm && c[1] !== EDIT_CAT_OLD);
@@ -1548,7 +1550,12 @@ function saveEditCat() {
   // Update in custom cats (simple string)
   const arr = CUSTOM_CATS[EDIT_CAT_TYPE] || [];
   const idx = arr.findIndex(c => (typeof c === 'string' ? c : c.name) === EDIT_CAT_OLD);
-  if (idx !== -1) arr[idx] = newName;
+  if (idx !== -1) {
+    const existing = arr[idx];
+    // Preserve ico, update name — also pick up any new ico selected
+    const savedIco = NEW_CAT_ICO || (typeof existing === 'string' ? '🏷️' : (existing.ico || '🏷️'));
+    arr[idx] = { name: newName, ico: savedIco };
+  }
   saveCustomCats();
   // Update transactions
   TXS.forEach(tx => { if (tx.type===EDIT_CAT_TYPE && tx.category===EDIT_CAT_OLD) tx.category = newName; });
@@ -1562,8 +1569,19 @@ function saveEditCat() {
   renderCustomCatList();
 }
 
+function confirmDeleteCatFromModal() {
+  // Called from the edit cat modal — uses global EDIT_CAT_TYPE / EDIT_CAT_OLD
+  const type = EDIT_CAT_TYPE;
+  const name = EDIT_CAT_OLD;
+  closeEditCat();
+  document.getElementById('confirm-overlay').classList.add('on');
+  document.querySelector('.confirm-ttl').textContent = '¿Eliminar categoría?';
+  document.querySelector('.confirm-msg').textContent = 'Las transacciones con esta categoría pasarán a "Otros".';
+  document.getElementById('confirm-yes-btn').onclick = () => doDeleteCat(type, name);
+}
+
 function confirmDeleteCat(type, name) {
-  // Close edit cat modal if open
+  // Called from "Mis categorías" list button
   closeEditCat();
   document.getElementById('confirm-overlay').classList.add('on');
   document.querySelector('.confirm-ttl').textContent = '¿Eliminar categoría?';
@@ -1574,7 +1592,7 @@ function confirmDeleteCat(type, name) {
 function doDeleteCat(type, name) {
   closeConfirm();
   // Remove from custom cats (simple string array)
-  CUSTOM_CATS[type] = (CUSTOM_CATS[type] || []).filter(c => (typeof c === 'string' ? c : c.name) !== name);
+  CUSTOM_CATS[type] = (CUSTOM_CATS[type] || []).filter(c => (c.name || c) !== name);
   saveCustomCats();
   // Move transactions to Otros
   TXS.forEach(tx => { if (tx.type === type && tx.category === name) tx.category = 'Otros'; });
