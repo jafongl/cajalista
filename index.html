@@ -384,12 +384,12 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:#f3f4f6;color:
     <div style="height:1.25rem;"></div>
     <div class="qa-grid" style="grid-template-columns:1fr 1fr;gap:12px;">
       <div class="qa e" onclick="openModal('in')" style="padding:1.25rem;border-radius:16px;">
-        <div class="qa-ico e" style="width:44px;height:44px;border-radius:12px;font-size:22px;">💰</div>
+        <div class="qa-ico e" style="width:44px;height:44px;border-radius:12px;font-size:22px;font-weight:700;font-family:'DM Sans',sans-serif;">+</div>
         <div class="qa-name" style="font-size:14px;">Registrar entrada</div>
         <div class="qa-desc">Venta, cobro, depósito</div>
       </div>
       <div class="qa s" onclick="openModal('out')" style="padding:1.25rem;border-radius:16px;">
-        <div class="qa-ico s" style="width:44px;height:44px;border-radius:12px;font-size:22px;">📤</div>
+        <div class="qa-ico s" style="width:44px;height:44px;border-radius:12px;font-size:22px;font-weight:700;font-family:'DM Sans',sans-serif;">-</div>
         <div class="qa-name" style="font-size:14px;">Registrar salida</div>
         <div class="qa-desc">Gasto, pago, compra</div>
       </div>
@@ -436,8 +436,8 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:#f3f4f6;color:
     <div class="modal-ttl" id="bm-title">Nuevo presupuesto</div>
     <label class="lbl" style="margin-bottom:6px;">Tipo</label>
     <div class="bm-type-row">
-      <button class="bm-type-btn" id="bm-in"  onclick="setBudgetType('in')">💰 Entrada</button>
-      <button class="bm-type-btn" id="bm-out" onclick="setBudgetType('out')">📤 Salida</button>
+      <button class="bm-type-btn" id="bm-in"  onclick="setBudgetType('in')">Entrada</button>
+      <button class="bm-type-btn" id="bm-out" onclick="setBudgetType('out')">Salida</button>
     </div>
     <label class="lbl" style="margin-bottom:6px;">Categoría</label>
     <select class="inp" id="bm-cat" style="margin-bottom:.5rem;"></select>
@@ -490,8 +490,8 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:#f3f4f6;color:
     <div class="pill"></div>
     <div class="modal-ttl">Nuevo movimiento</div>
     <div class="type-row">
-      <button class="tbtn" id="t-in"  onclick="setType('in')">💰 Entrada</button>
-      <button class="tbtn" id="t-out" onclick="setType('out')">📤 Salida</button>
+      <button class="tbtn" id="t-in"  onclick="setType('in')">Entrada</button>
+      <button class="tbtn" id="t-out" onclick="setType('out')">Salida</button>
     </div>
     <div class="amt-wrap">
       <span class="amt-pre">$</span>
@@ -557,8 +557,8 @@ let CUSTOM_CATS = { in: [], out: [] };
 
 const DIAS = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
 const CATS = {
-  in:  [['🛍️','Ventas'],['🔧','Servicios'],['💵','Cobros'],['🏦','Préstamo'],['🎁','Otros']],
-  out: [['📦','Proveedores'],['💡','Servicios pub.'],['🏠','Alquiler'],['👥','Nómina'],['🚗','Transporte'],['📝','Otros']]
+  in:  [['','Ventas'],['','Servicios'],['','Cobros'],['','Préstamo'],['','Otros']],
+  out: [['','Proveedores'],['','Servicios pub.'],['','Alquiler'],['','Nómina'],['','Transporte'],['','Otros']]
 };
 
 // ══ BUDGET ══
@@ -1052,8 +1052,7 @@ function renderChart() {
 }
 
 function txHTML(tx) {
-  const catDef = CATS[tx.type]?.find(c=>c[1]===tx.category);
-  const ico = catDef ? catDef[0] : (tx.type==='in'?'💰':'📤');
+  const ico = tx.type==='in' ? '+' : '-';
   const time = new Date(tx.created_at).toLocaleTimeString('es-PA',{hour:'2-digit',minute:'2-digit'});
   const date = new Date(tx.created_at).toLocaleDateString('es-PA',{day:'numeric',month:'short'});
   const id = tx.id || '';
@@ -1063,7 +1062,7 @@ function txHTML(tx) {
       <button class="tx-act del"  onclick="confirmDelete('${id}')"><span class="tx-act-ico">🗑️</span>Borrar</button>
     </div>
     <div class="tx" id="tx-${id}" onclick="openSheet('${id}')" ontouchstart="txTouchStart(event,'${id}')" ontouchend="txTouchEnd(event,'${id}')">
-      <div class="tx-ico ${tx.type}">${ico}</div>
+      <div class="tx-ico ${tx.type}" style="font-size:18px;font-weight:600;font-family:'DM Sans',sans-serif;">${ico}</div>
       <div class="tx-info">
         <div class="tx-name">${tx.description}</div>
         <div class="tx-meta">${tx.category} · ${date}</div>
@@ -1485,7 +1484,7 @@ function renderCustomCatList() {
     cats.map((name, idx) => {
       const safe = name.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
       return `<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 8px;background:#f9fafb;border-radius:8px;margin-bottom:4px;">
-        <span style="font-size:13px;">🏷️ ${name}</span>
+        <span style="font-size:13px;">${name}</span>
         <div style="display:flex;gap:4px;">
           <button type="button" data-idx="${idx}" data-type="${t}"
                   onclick="editCustomCatByIdx(this);event.stopPropagation();"
