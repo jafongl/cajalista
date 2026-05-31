@@ -109,13 +109,10 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:#f3f4f6;color:
 
 /* Quick actions */
 .qa-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:1.25rem;}
-.qa{border:1px solid #e5e7eb;border-radius:12px;padding:.875rem;display:flex;flex-direction:column;gap:5px;cursor:pointer;background:#fff;}
+.qa{border:1px solid #e5e7eb;border-radius:12px;padding:.875rem;display:flex;flex-direction:column;gap:5px;cursor:pointer;background:#fff;align-items:center;justify-content:center;text-align:center;}
 .qa:active{transform:scale(.97);}
 .qa.e{border-color:#a7f3d0;}
 .qa.s{border-color:#fecaca;}
-.qa-ico{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px;}
-.qa-ico.e{background:#ecfdf5;}
-.qa-ico.s{background:#fff1f2;}
 .qa-name{font-size:13px;font-weight:500;}
 .qa-desc{font-size:11px;color:#6b7280;}
 
@@ -140,11 +137,11 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:#f3f4f6;color:
 .tx-act.edit{background:#3b82f6;color:#fff;}
 .tx-act.del{background:#ef4444;color:#fff;}
 .tx-act-ico{font-size:16px;}
-.tx{display:flex;align-items:center;gap:10px;padding:.7rem .875rem;background:#fff;border:1px solid #e5e7eb;border-radius:12px;position:relative;transition:transform .25s ease;cursor:pointer;user-select:none;}
+.tx{display:flex;align-items:center;gap:10px;padding:.6rem .875rem;background:#fff;border:1px solid #e5e7eb;border-radius:12px;position:relative;transition:transform .25s ease;cursor:pointer;user-select:none;}
 .tx.swiped{transform:translateX(-145px);}
-.tx-ico{width:36px;height:36px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;}
-.tx-ico.i{background:#ecfdf5;}
-.tx-ico.o{background:#fff1f2;}
+.tx-ico{width:10px;height:10px;border-radius:50%;flex-shrink:0;margin-top:4px;}
+.tx-ico.i{background:#10b981;}
+.tx-ico.o{background:#fca5a5;}
 .tx-info{flex:1;min-width:0;}
 .tx-name{font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .tx-meta{font-size:11px;color:#6b7280;}
@@ -199,7 +196,7 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:#f3f4f6;color:
 .amt-inp{width:100%;padding:.875rem .875rem .875rem 2rem;border:1.5px solid #e5e7eb;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:26px;font-weight:300;color:#111827;outline:none;background:#fff;}
 .amt-inp:focus{border-color:#10b981;}
 .cats{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;margin-bottom:1rem;}
-.cat{padding:.5rem .25rem;border:1px solid #e5e7eb;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:11px;font-weight:500;color:#6b7280;cursor:pointer;text-align:center;background:#fff;}
+.cat{padding:.4rem .3rem;border:1px solid #e5e7eb;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:11px;font-weight:500;color:#6b7280;cursor:pointer;text-align:center;background:#fff;display:flex;align-items:center;justify-content:center;min-height:32px;}
 .cat.ci{border-color:#6ee7b7;background:#ecfdf5;color:#065f46;}
 .cat.co{border-color:#fca5a5;background:#fff1f2;color:#dc2626;}
 .offline-bar{background:#fef3c7;border:1px solid #fcd34d;border-radius:8px;padding:.5rem .875rem;font-size:12px;color:#92400e;margin:.5rem 1.25rem 0;display:none;flex-shrink:0;}
@@ -384,12 +381,12 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:#f3f4f6;color:
     <div style="height:1.25rem;"></div>
     <div class="qa-grid" style="grid-template-columns:1fr 1fr;gap:12px;">
       <div class="qa e" onclick="openModal('in')" style="padding:1.25rem;border-radius:16px;">
-        <div class="qa-ico e" style="width:44px;height:44px;border-radius:12px;font-size:22px;font-weight:700;font-family:'DM Sans',sans-serif;">+</div>
+
         <div class="qa-name" style="font-size:14px;">Registrar entrada</div>
         <div class="qa-desc">Venta, cobro, depósito</div>
       </div>
       <div class="qa s" onclick="openModal('out')" style="padding:1.25rem;border-radius:16px;">
-        <div class="qa-ico s" style="width:44px;height:44px;border-radius:12px;font-size:22px;font-weight:700;font-family:'DM Sans',sans-serif;">-</div>
+
         <div class="qa-name" style="font-size:14px;">Registrar salida</div>
         <div class="qa-desc">Gasto, pago, compra</div>
       </div>
@@ -1052,7 +1049,7 @@ function renderChart() {
 }
 
 function txHTML(tx) {
-  const ico = tx.type==='in' ? '+' : '-';
+  const ico = '';
   const time = new Date(tx.created_at).toLocaleTimeString('es-PA',{hour:'2-digit',minute:'2-digit'});
   const date = new Date(tx.created_at).toLocaleDateString('es-PA',{day:'numeric',month:'short'});
   const id = tx.id || '';
@@ -1062,7 +1059,7 @@ function txHTML(tx) {
       <button class="tx-act del"  onclick="confirmDelete('${id}')"><span class="tx-act-ico">🗑️</span>Borrar</button>
     </div>
     <div class="tx" id="tx-${id}" onclick="openSheet('${id}')" ontouchstart="txTouchStart(event,'${id}')" ontouchend="txTouchEnd(event,'${id}')">
-      <div class="tx-ico ${tx.type}" style="font-size:18px;font-weight:600;font-family:'DM Sans',sans-serif;">${ico}</div>
+      <div class="tx-ico ${tx.type}"></div>
       <div class="tx-info">
         <div class="tx-name">${tx.description}</div>
         <div class="tx-meta">${tx.category} · ${date}</div>
@@ -1298,18 +1295,14 @@ function renderCatsGrid(selectedCat) {
 
   const catHTML = visible.map(({ico, name}, idx) => {
     const selClass = sel === name ? (TYPE==='in'?' ci':' co') : '';
-    return `<div class="cat${selClass}" data-cat="${idx}" onclick="pickCatByIdx(${idx})">
-      ${ico}<br><span style="font-size:10px;line-height:1.3;">${name}</span>
-    </div>`;
+    return `<div class="cat${selClass}" data-cat="${idx}" onclick="pickCatByIdx(${idx})">${name}</div>`;
   }).join('');
   // Store visible cats for pickCatByIdx
   window._visibleCats = visible;
 
   // "Ver más / Ver menos" button as 9th slot when needed
   const moreBtn = (!SHOW_ALL_CATS && hasMore)
-    ? `<div class="cat" onclick="toggleAllCats()" style="border-style:dashed;">
-        ···<br><span style="font-size:10px;line-height:1.3;">Ver más</span>
-       </div>`
+    ? `<div class="cat" onclick="toggleAllCats()" style="border-style:dashed;">Ver más</div>`
     : (SHOW_ALL_CATS && hasMore)
     ? `<div class="cat" onclick="toggleAllCats()" style="border-style:dashed;grid-column:1/-1;justify-self:center;width:auto;padding:.4rem 1.5rem;">
         <span style="font-size:11px;">Ver menos ▲</span>
