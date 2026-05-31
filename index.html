@@ -109,12 +109,15 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:#f3f4f6;color:
 
 /* Quick actions */
 .qa-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:1.25rem;}
-.qa{border:1px solid #e5e7eb;border-radius:12px;padding:.875rem;display:flex;flex-direction:column;gap:5px;cursor:pointer;background:#fff;align-items:center;justify-content:center;text-align:center;}
+.qa{border:1px solid #e5e7eb;border-radius:12px;padding:.875rem;display:flex;flex-direction:column;gap:5px;cursor:pointer;background:#fff;}
 .qa:active{transform:scale(.97);}
 .qa.e{border-color:#a7f3d0;}
 .qa.s{border-color:#fecaca;}
 .qa-name{font-size:13px;font-weight:500;}
 .qa-desc{font-size:11px;color:#6b7280;}
+.qa-ico{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:18px;}
+.qa-ico.e{background:#ecfdf5;}
+.qa-ico.s{background:#fff1f2;}
 
 /* Chart */
 .chart-card{background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:.875rem;margin-bottom:1.25rem;}
@@ -381,12 +384,12 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:#f3f4f6;color:
     <div style="height:1.25rem;"></div>
     <div class="qa-grid" style="grid-template-columns:1fr 1fr;gap:12px;">
       <div class="qa e" onclick="openModal('in')" style="padding:1.25rem;border-radius:16px;">
-
+        <div class="qa-ico e">💰</div>
         <div class="qa-name" style="font-size:14px;">Registrar entrada</div>
         <div class="qa-desc">Venta, cobro, depósito</div>
       </div>
       <div class="qa s" onclick="openModal('out')" style="padding:1.25rem;border-radius:16px;">
-
+        <div class="qa-ico s">📤</div>
         <div class="qa-name" style="font-size:14px;">Registrar salida</div>
         <div class="qa-desc">Gasto, pago, compra</div>
       </div>
