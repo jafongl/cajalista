@@ -198,10 +198,20 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:#f3f4f6;color:
 .amt-pre{position:absolute;left:.875rem;top:50%;transform:translateY(-50%);font-size:20px;color:#9ca3af;}
 .amt-inp{width:100%;padding:.875rem .875rem .875rem 2rem;border:1.5px solid #e5e7eb;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:26px;font-weight:300;color:#111827;outline:none;background:#fff;}
 .amt-inp:focus{border-color:#10b981;}
-.cats{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;margin-bottom:1rem;}
-.cat{padding:.4rem .3rem;border:1px solid #e5e7eb;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:11px;font-weight:500;color:#6b7280;cursor:pointer;text-align:center;background:#fff;display:flex;align-items:center;justify-content:center;min-height:32px;}
-.cat.ci{border-color:#6ee7b7;background:#ecfdf5;color:#065f46;}
-.cat.co{border-color:#fca5a5;background:#fff1f2;color:#dc2626;}
+.cats{display:flex;flex-direction:column;gap:5px;margin-bottom:1rem;}
+
+.cat-row{display:flex;align-items:center;justify-content:space-between;padding:.5rem .75rem;border:1px solid #e5e7eb;border-radius:8px;margin-bottom:5px;background:#fff;gap:8px;}
+.cat-row.ci{border-color:#6ee7b7;background:#ecfdf5;}
+.cat-row.co{border-color:#fca5a5;background:#fff1f2;}
+.cat-row-name{flex:1;font-size:13px;font-weight:500;color:#374151;cursor:pointer;}
+.cat-row.ci .cat-row-name{color:#065f46;}
+.cat-row.co .cat-row-name{color:#dc2626;}
+.cat-row-actions{display:flex;gap:4px;flex-shrink:0;}
+.cat-row-btn{border:none;border-radius:6px;font-size:13px;cursor:pointer;padding:3px 7px;line-height:1;}
+.cat-row-btn.edit{background:#f3f4f6;color:#6b7280;}
+.cat-row-btn.del{background:#fff1f2;color:#dc2626;}
+
+
 .offline-bar{background:#fef3c7;border:1px solid #fcd34d;border-radius:8px;padding:.5rem .875rem;font-size:12px;color:#92400e;margin:.5rem 1.25rem 0;display:none;flex-shrink:0;}
 .offline-bar.on{display:block;}
 /* Budget */
@@ -498,13 +508,11 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:#f3f4f6;color:
       <input class="amt-inp" type="number" id="m-amt" placeholder="0.00" min="0" step="0.01" inputmode="decimal">
     </div>
     <label class="lbl" style="margin-bottom:6px;">Categoría</label>
-    <div class="cats-section-lbl" id="cats-section-lbl">Más usadas</div>
     <div class="cats" id="m-cats"></div>
     <div class="custom-cat-wrap" style="margin-top:4px;">
       <input class="custom-cat-inp" id="custom-cat-inp" type="text" placeholder="+ Nueva categoría..." maxlength="24">
       <button type="button" class="custom-cat-btn" onclick="addCatFromInput()">+ Crear</button>
     </div>
-    <div id="custom-cat-list" style="margin-top:.5rem;"></div>
     <label class="lbl" style="margin-top:.75rem;">Descripción (opcional)</label>
     <input class="inp" type="text" id="m-desc" placeholder="Ej: Venta de almuerzo...">
     <button class="btn" id="m-save" onclick="saveTx()">Guardar movimiento</button>
@@ -556,10 +564,7 @@ let CUSTOM_CATS = { in: [], out: [] };
 
 
 const DIAS = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
-const CATS = {
-  in:  [['','Ventas'],['','Servicios'],['','Cobros'],['','Préstamo'],['','Otros']],
-  out: [['','Proveedores'],['','Servicios pub.'],['','Alquiler'],['','Nómina'],['','Transporte'],['','Otros']]
-};
+const CATS = { in: [], out: [] }; // No default categories — user creates their own
 
 // ══ BUDGET ══
 let BUDGETS = [];
@@ -1246,87 +1251,59 @@ function closeModal() {
 function closeOuter(e) { if (e.target===document.getElementById('overlay')) closeModal(); }
 
 function getSmartCats(t) {
-  // Count usage per category from transaction history
+  const cats = (CUSTOM_CATS[t] || []).map(c => typeof c === 'string' ? c : (c.name || c));
+  // Count usage for sorting
   const usage = {};
-  TXS.filter(x => x.type === t).forEach(x => {
-    usage[x.category] = (usage[x.category] || 0) + 1;
-  });
-
-  // Defaults (excluding 'Otros') + custom cats
-  const defaults = CATS[t].filter(([,n]) => n !== 'Otros').map(([ico, name]) => ({ ico, name }));
-  const customs = (CUSTOM_CATS[t] || []).map(c => ({ ico: '🏷️', name: typeof c === 'string' ? c : (c.name || c) }));
-
-  // Merge unique
-  const all = [...defaults];
-  customs.forEach(c => { if (!all.find(a => a.name === c.name)) all.push(c); });
-
-  // Sort by usage desc — zero-usage keeps original order (stable sort)
-  all.sort((a, b) => (usage[b.name] || 0) - (usage[a.name] || 0));
-
-  // 'Otros' always last — no exceptions
-  const otrosIco   = CATS[t].find(([,n])=>n==='Otros')?.[0] || '📝';
-  const otros      = { ico: otrosIco, name: 'Otros' };
-  const allNoOtros = all.filter(c => c.name !== 'Otros');
-  allNoOtros.push(otros); // always last, always
-  return allNoOtros;
+  TXS.filter(x => x.type === t).forEach(x => { usage[x.category] = (usage[x.category]||0)+1; });
+  return cats.slice().sort((a,b) => (usage[b]||0) - (usage[a]||0));
 }
 
-let SHOW_ALL_CATS = false;
-
 function setType(t) {
-  TYPE = t; CAT = ''; SHOW_ALL_CATS = false;
+  TYPE = t; CAT = '';
   document.getElementById('t-in').className  = 'tbtn'+(t==='in'?' ti':'');
   document.getElementById('t-out').className = 'tbtn'+(t==='out'?' to':'');
   const inp = document.getElementById('custom-cat-inp');
   if (inp) inp.value = '';
   renderCatsGrid();
-  renderCustomCatList();
 }
 
 function renderCatsGrid(selectedCat) {
   const sel = selectedCat !== undefined ? selectedCat : CAT;
-  const all  = getSmartCats(TYPE);
-  const MAX  = 5;
-  const hasMore = all.length > MAX;
+  const cats = (CUSTOM_CATS[TYPE] || []).map(c => typeof c === 'string' ? c : (c.name || c));
 
-  // Decide which to show
-  let visible = SHOW_ALL_CATS ? all : all.slice(0, MAX);
+  const el = document.getElementById('m-cats');
+  if (!cats.length) {
+    el.innerHTML = '<div style="color:#9ca3af;font-size:12px;text-align:center;padding:.75rem;border:1px dashed #e5e7eb;border-radius:8px;">Sin categorías — crea una abajo.</div>';
+    window._visibleCats = [];
+    return;
+  }
 
-  const hasUsage = TXS.some(x => x.type === TYPE);
-  const lbl = document.getElementById('cats-section-lbl');
-  if (lbl) lbl.textContent = hasUsage ? 'Más usadas' : 'Categorías';
+  window._visibleCats = cats.map(name => ({ ico: '', name }));
 
-  const catHTML = visible.map(({ico, name}, idx) => {
-    const selClass = sel === name ? (TYPE==='in'?' ci':' co') : '';
-    return `<div class="cat${selClass}" data-cat="${idx}" onclick="pickCatByIdx(${idx})">${name}</div>`;
+  el.innerHTML = cats.map((name, idx) => {
+    const isSelected = sel === name;
+    const selStyle = isSelected
+      ? (TYPE==='in' ? 'border-color:#6ee7b7;background:#ecfdf5;color:#065f46;' : 'border-color:#fca5a5;background:#fff1f2;color:#dc2626;')
+      : '';
+    const safe = name.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+    return `<div style="display:flex;align-items:center;border:1px solid #e5e7eb;border-radius:8px;background:#fff;overflow:hidden;${isSelected?selStyle:''}">
+      <div onclick="pickCatByIdx(${idx})" style="flex:1;padding:.45rem .75rem;font-size:12px;font-weight:500;color:${isSelected?(TYPE==='in'?'#065f46':'#dc2626'):'#6b7280'};cursor:pointer;">${name}</div>
+      <button type="button" onclick="openEditCat('${TYPE}','${safe}');event.stopPropagation();"
+        style="border:none;border-left:1px solid #f3f4f6;background:transparent;padding:.45rem .5rem;cursor:pointer;font-size:13px;color:#9ca3af;">✏️</button>
+      <button type="button" onclick="confirmDeleteCat('${TYPE}','${safe}');event.stopPropagation();"
+        style="border:none;border-left:1px solid #f3f4f6;background:transparent;padding:.45rem .5rem;cursor:pointer;font-size:13px;color:#fca5a5;">🗑️</button>
+    </div>`;
   }).join('');
-  // Store visible cats for pickCatByIdx
-  window._visibleCats = visible;
-
-  // "Ver más / Ver menos" button as 9th slot when needed
-  const moreBtn = (!SHOW_ALL_CATS && hasMore)
-    ? `<div class="cat" onclick="toggleAllCats()" style="border-style:dashed;">Ver más</div>`
-    : (SHOW_ALL_CATS && hasMore)
-    ? `<div class="cat" onclick="toggleAllCats()" style="border-style:dashed;grid-column:1/-1;justify-self:center;width:auto;padding:.4rem 1.5rem;">
-        <span style="font-size:11px;">Ver menos ▲</span>
-       </div>`
-    : '';
-
-  document.getElementById('m-cats').innerHTML = catHTML + moreBtn;
 }
 
-function toggleAllCats() {
-  SHOW_ALL_CATS = !SHOW_ALL_CATS;
-  renderCatsGrid();
-}
 
 function pickCat(name) {
   CAT = name;
   renderCatsGrid(name);
 }
 function pickCatByIdx(idx) {
-  const cats = window._visibleCats || [];
-  if (cats[idx]) { CAT = cats[idx].name; renderCatsGrid(CAT); }
+  const cats = getSmartCats(TYPE);
+  if (cats[idx] !== undefined) { CAT = cats[idx]; renderCatsGrid(CAT); }
 }
 
 
@@ -1341,16 +1318,14 @@ function addCatFromInput() {
   if (alreadyDefault || alreadyCustom) {
     CAT = alreadyDefault ? alreadyDefault[1] : (typeof alreadyCustom === 'string' ? alreadyCustom : alreadyCustom.name);
     if (inp) inp.value = '';
-    SHOW_ALL_CATS = false; renderCatsGrid(CAT); return;
+    renderCatsGrid(CAT); return;
   }
   if (!CUSTOM_CATS[TYPE]) CUSTOM_CATS[TYPE] = [];
   CUSTOM_CATS[TYPE].push(name);
   saveCustomCats();
   CAT = name;
   if (inp) inp.value = '';
-  SHOW_ALL_CATS = false;
   renderCatsGrid(CAT);
-  renderCustomCatList();
 }
 
 
@@ -1397,12 +1372,6 @@ function closeEditCat() {
   document.getElementById('edit-cat-overlay').classList.remove('on');
   document.getElementById('edit-cat-overlay').style.zIndex = '';
 }
-function editCustomCatByIdx(btn) {
-  const idx  = parseInt(btn.dataset.idx);
-  const type = btn.dataset.type;
-  const raw  = (CUSTOM_CATS[type] || [])[idx];
-  if (raw !== undefined) openEditCat(type, typeof raw === 'string' ? raw : (raw.name || raw));
-}
 function closeEditCatOuter(e) { if (e.target===document.getElementById('edit-cat-overlay')) closeEditCat(); }
 
 function saveEditCat() {
@@ -1431,7 +1400,6 @@ function saveEditCat() {
   closeEditCat();
   renderAll();
   renderCatsGrid();
-  renderCustomCatList();
 }
 
 function confirmDeleteCatFromModal() {
@@ -1467,33 +1435,8 @@ function doDeleteCat(type, name) {
   saveBudgets();
   renderAll();
   renderCatsGrid();
-  renderCustomCatList();
 }
 
-function renderCustomCatList() {
-  const el = document.getElementById('custom-cat-list');
-  if (!el || !TYPE) return;
-  const cats = CUSTOM_CATS[TYPE] || [];
-  if (!cats.length) { el.innerHTML = ''; return; }
-  const t = TYPE;
-  el.innerHTML = `<div style="font-size:10px;color:#9ca3af;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;">Mis categorías</div>` +
-    cats.map((name, idx) => {
-      const safe = name.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
-      return `<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 8px;background:#f9fafb;border-radius:8px;margin-bottom:4px;">
-        <span style="font-size:13px;">${name}</span>
-        <div style="display:flex;gap:4px;">
-          <button type="button" data-idx="${idx}" data-type="${t}"
-                  onclick="editCustomCatByIdx(this);event.stopPropagation();"
-                  style="border:none;background:none;font-size:14px;cursor:pointer;color:#9ca3af;padding:2px 4px;">✏️</button>
-          <button type="button" data-idx="${idx}" data-type="${t}"
-                  onclick="confirmDeleteCat('${t}','${safe}');event.stopPropagation();"
-                  style="border:none;background:#fff1f2;border-radius:4px;font-size:12px;cursor:pointer;color:#dc2626;padding:2px 6px;">🗑️</button>
-        </div>
-      </div>`;
-    }).join('');
-}
-
-// ══ ACTION SHEET ══
 function openSheet(id) {
   // If already swiped, just open sheet; otherwise open sheet directly
   SHEET_TX = TXS.find(x => String(x.id) === String(id));
