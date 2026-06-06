@@ -1302,8 +1302,8 @@ function pickCat(name) {
   renderCatsGrid(name);
 }
 function pickCatByIdx(idx) {
-  const cats = getSmartCats(TYPE);
-  if (cats[idx] !== undefined) { CAT = cats[idx]; renderCatsGrid(CAT); }
+  const cats = (CUSTOM_CATS[TYPE] || []).map(c => typeof c === 'string' ? c : (c.name || c));
+  if (cats[idx] !== undefined) { CAT = cats[idx]; renderCatsGrid(cats[idx]); }
 }
 
 
