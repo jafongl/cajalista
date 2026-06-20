@@ -199,6 +199,11 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:#f3f4f6;color:
 .amt-inp{width:100%;padding:.875rem .875rem .875rem 2rem;border:1.5px solid #e5e7eb;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:26px;font-weight:300;color:#111827;outline:none;background:#fff;}
 .amt-inp:focus{border-color:#10b981;}
 .cats{display:flex;flex-direction:column;gap:5px;margin-bottom:1rem;}
+.ico-grid{display:flex;flex-wrap:wrap;gap:5px;margin:6px 0 8px;}
+.ico-btn{width:34px;height:34px;border-radius:8px;border:1.5px solid #e5e7eb;display:flex;align-items:center;justify-content:center;font-size:18px;cursor:pointer;background:#fff;transition:border-color .1s,background .1s;}
+.ico-btn.sel{border-color:#064e3b;background:#ecfdf5;}
+.ico-btn{width:32px;height:32px;border-radius:7px;border:1.5px solid #e5e7eb;display:flex;align-items:center;justify-content:center;font-size:16px;cursor:pointer;background:#fff;flex-shrink:0;}
+.ico-btn.sel{border-color:#064e3b;background:#ecfdf5;}
 
 .cat-row{display:flex;align-items:center;justify-content:space-between;padding:.5rem .75rem;border:1px solid #e5e7eb;border-radius:8px;margin-bottom:5px;background:#fff;gap:8px;}
 .cat-row.ci{border-color:#6ee7b7;background:#ecfdf5;}
@@ -509,9 +514,15 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:#f3f4f6;color:
     </div>
     <label class="lbl" style="margin-bottom:6px;">Categoría</label>
     <div class="cats" id="m-cats"></div>
-    <div class="custom-cat-wrap" style="margin-top:4px;">
-      <input class="custom-cat-inp" id="custom-cat-inp" type="text" placeholder="+ Nueva categoría..." maxlength="24">
-      <button type="button" class="custom-cat-btn" onclick="addCatFromInput()">+ Crear</button>
+    <div style="margin-top:4px;">
+      <div class="custom-cat-wrap">
+        <input class="custom-cat-inp" id="custom-cat-inp" type="text" placeholder="+ Nueva categoría..." maxlength="24" oninput="onNewCatInput()">
+        <button type="button" class="custom-cat-btn" onclick="addCatFromInput()">+ Crear</button>
+      </div>
+      <div id="new-cat-ico-section" style="display:none;">
+        <div style="font-size:10px;color:#9ca3af;text-transform:uppercase;letter-spacing:.05em;margin-top:6px;margin-bottom:4px;">Ícono</div>
+        <div class="ico-grid" id="new-cat-ico-grid"></div>
+      </div>
     </div>
     <label class="lbl" style="margin-top:.75rem;">Descripción (opcional)</label>
     <input class="inp" type="text" id="m-desc" placeholder="Ej: Venta de almuerzo...">
@@ -527,6 +538,8 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:#f3f4f6;color:
       <div class="edit-cat-ttl" id="edit-cat-title" style="margin-bottom:0;">Editar categoría</div>
       <button id="edit-cat-delete-btn" onclick="confirmDeleteCatFromModal()" style="border:none;background:#fff1f2;color:#dc2626;border-radius:8px;padding:5px 10px;font-size:12px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;">🗑️ Eliminar</button>
     </div>
+    <label class="lbl" style="margin-bottom:4px;">Ícono</label>
+    <div class="ico-grid" id="edit-cat-ico-grid" style="margin-bottom:10px;"></div>
     <label class="lbl">Nombre</label>
     <input class="inp" id="edit-cat-new" type="text" maxlength="24" placeholder="Escribe el nombre">
     <div class="err" id="edit-cat-err"></div>
@@ -1269,7 +1282,7 @@ function setType(t) {
 
 function renderCatsGrid(selectedCat) {
   const sel = selectedCat !== undefined ? selectedCat : CAT;
-  const cats = (CUSTOM_CATS[TYPE] || []).map(c => typeof c === 'string' ? c : (c.name || c));
+  const cats = (CUSTOM_CATS[TYPE] || []).map(c => typeof c === 'string' ? { name: c, ico: '📌' } : { name: c.name || c, ico: c.ico || '📌' });
 
   const el = document.getElementById('m-cats');
   if (!cats.length) {
@@ -1280,14 +1293,15 @@ function renderCatsGrid(selectedCat) {
 
   window._visibleCats = cats.map(name => ({ ico: '', name }));
 
-  el.innerHTML = cats.map((name, idx) => {
+  el.innerHTML = cats.map((cat, idx) => {
+    const name = cat.name;
     const isSelected = sel === name;
     const selStyle = isSelected
       ? (TYPE==='in' ? 'border-color:#6ee7b7;background:#ecfdf5;color:#065f46;' : 'border-color:#fca5a5;background:#fff1f2;color:#dc2626;')
       : '';
     const safe = name.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
     return `<div style="display:flex;align-items:center;border:1px solid #e5e7eb;border-radius:8px;background:#fff;overflow:hidden;${isSelected?selStyle:''}">
-      <div onclick="pickCatByIdx(${idx})" style="flex:1;padding:.45rem .75rem;font-size:12px;font-weight:500;color:${isSelected?(TYPE==='in'?'#065f46':'#dc2626'):'#6b7280'};cursor:pointer;">${name}</div>
+      <div onclick="pickCatByIdx(${idx})" style="flex:1;padding:.45rem .75rem;font-size:13px;font-weight:500;color:${isSelected?(TYPE==='in'?'#065f46':'#dc2626'):'#374151'};cursor:pointer;display:flex;align-items:center;gap:8px;"><span>${cat.ico}</span><span>${cat.name}</span></div>
       <button type="button" onclick="openEditCat('${TYPE}','${safe}');event.stopPropagation();"
         style="border:none;border-left:1px solid #f3f4f6;background:transparent;padding:.45rem .5rem;cursor:pointer;font-size:13px;color:#9ca3af;">✏️</button>
       <button type="button" onclick="confirmDeleteCat('${TYPE}','${safe}');event.stopPropagation();"
@@ -1302,8 +1316,11 @@ function pickCat(name) {
   renderCatsGrid(name);
 }
 function pickCatByIdx(idx) {
-  const cats = (CUSTOM_CATS[TYPE] || []).map(c => typeof c === 'string' ? c : (c.name || c));
-  if (cats[idx] !== undefined) { CAT = cats[idx]; renderCatsGrid(cats[idx]); }
+  const raw = (CUSTOM_CATS[TYPE] || [])[idx];
+  if (raw !== undefined) {
+    const name = typeof raw === 'string' ? raw : (raw.name || raw);
+    CAT = name; renderCatsGrid(name);
+  }
 }
 
 
@@ -1314,14 +1331,14 @@ function addCatFromInput() {
   if (!name) { if (inp) inp.focus(); return; }
   const norm = name.toLowerCase();
   const alreadyDefault = CATS[TYPE].find(c => c[1].toLowerCase() === norm);
-  const alreadyCustom  = (CUSTOM_CATS[TYPE]||[]).find(c => (c.name||c||'').toLowerCase() === norm);
+  const alreadyCustom  = (CUSTOM_CATS[TYPE]||[]).find(c => (typeof c==='string'?c:(c.name||'')).toLowerCase() === norm);
   if (alreadyDefault || alreadyCustom) {
     CAT = alreadyDefault ? alreadyDefault[1] : (typeof alreadyCustom === 'string' ? alreadyCustom : alreadyCustom.name);
     if (inp) inp.value = '';
     renderCatsGrid(CAT); return;
   }
   if (!CUSTOM_CATS[TYPE]) CUSTOM_CATS[TYPE] = [];
-  CUSTOM_CATS[TYPE].push(name);
+  CUSTOM_CATS[TYPE].push({ name, ico: _newCatIco || '📌' });
   saveCustomCats();
   CAT = name;
   if (inp) inp.value = '';
@@ -1332,6 +1349,45 @@ function addCatFromInput() {
 
 
 
+const _ICONS = ['😀', '😎', '🏠', '🚗', '🍔', '🛍️', '💊', '✈️', '🎓', '💻', '📱', '🎮', '🎵', '⚽', '🐶', '🌿', '🔧', '📦', '💡', '💰', '💳', '🏋️', '☕', '🍕', '🛒', '🏥', '📚', '🎨', '🏖️', '🎁', '🍺', '🐾', '⚡', '🌟', '🔑', '🎯', '🏪', '🌮', '💐', '🎪'];
+let _newCatIco = '📌';
+let _editCatIco = '📌';
+
+function onNewCatInput() {
+  const val = document.getElementById('custom-cat-inp').value.trim();
+  const sec = document.getElementById('new-cat-ico-section');
+  if (val) {
+    sec.style.display = 'block';
+    if (!document.getElementById('new-cat-ico-grid').children.length) renderIcoGrid('new-cat-ico-grid', _newCatIco, ico => { _newCatIco = ico; });
+  } else {
+    sec.style.display = 'none';
+  }
+}
+
+function renderIcoGrid(gridId, selected, onChange) {
+  const grid = document.getElementById(gridId);
+  if (!grid) return;
+  grid.innerHTML = _ICONS.map(ico =>
+    `<div class="ico-btn${ico===selected?' sel':''}" onclick="selectIcoBtn(this,'${gridId}','${ico}')">${ico}</div>`
+  ).join('');
+  grid._onChange = onChange;
+}
+
+function selectIcoBtn(el, gridId, ico) {
+  document.querySelectorAll('#'+gridId+' .ico-btn').forEach(b => b.classList.remove('sel'));
+  el.classList.add('sel');
+  const grid = document.getElementById(gridId);
+  if (grid && grid._onChange) grid._onChange(ico);
+}
+
+function hideNewCatIco() {
+  const sec = document.getElementById('new-cat-ico-section');
+  if (sec) sec.style.display = 'none';
+  const grid = document.getElementById('new-cat-ico-grid');
+  if (grid) grid.innerHTML = '';
+  _newCatIco = '📌';
+}
+
 function loadCustomCats() {
   try {
     const key = 'cc_custom_cats_' + (USER?.id || 'guest');
@@ -1339,7 +1395,7 @@ function loadCustomCats() {
     if (stored) {
       const parsed = JSON.parse(stored);
       // Preserve ico — keep object format {name, ico}, migrate plain strings
-      const normalize = arr => (arr||[]).map(c => typeof c === 'string' ? c : (c.name || c));
+      const normalize = arr => (arr||[]).map(c => typeof c === 'string' ? {name:c,ico:'📌'} : {name:c.name||c,ico:c.ico||'📌'});
       CUSTOM_CATS = { in: normalize(parsed.in), out: normalize(parsed.out) };
     }
   } catch(e) { CUSTOM_CATS = { in: [], out: [] }; }
@@ -1361,12 +1417,18 @@ let EDIT_CAT_OLD  = null;
 function openEditCat(type, oldName) {
   EDIT_CAT_TYPE = type;
   EDIT_CAT_OLD  = oldName;
+  // Find current ico for this cat
+  const existing = (CUSTOM_CATS[type]||[]).find(c => (typeof c==='string' ? c : c.name) === oldName);
+  _editCatIco = (existing && typeof existing === 'object' && existing.ico) ? existing.ico : '📌';
   document.getElementById('edit-cat-new').value = oldName;
   document.getElementById('edit-cat-err').textContent = '';
   document.getElementById('edit-cat-delete-btn').style.display = 'block';
   document.getElementById('edit-cat-title').textContent = 'Editar categoría';
+  // Render ico grid
+  const grid = document.getElementById('edit-cat-ico-grid');
+  if (grid) { grid.innerHTML = ''; renderIcoGrid('edit-cat-ico-grid', _editCatIco, ico => { _editCatIco = ico; }); }
   document.getElementById('edit-cat-overlay').classList.add('on');
-  setTimeout(() => document.getElementById('edit-cat-new').focus(), 100);
+  setTimeout(() => document.getElementById('edit-cat-new').focus(), 150);
 }
 function closeEditCat() {
   document.getElementById('edit-cat-overlay').classList.remove('on');
@@ -1384,12 +1446,12 @@ function saveEditCat() {
   // Check duplicate
   const norm = newName.toLowerCase();
   const dupDefault = CATS[EDIT_CAT_TYPE].find(c => c[1].toLowerCase() === norm && c[1] !== EDIT_CAT_OLD);
-  const dupCustom  = (CUSTOM_CATS[EDIT_CAT_TYPE]||[]).find(c => c.toLowerCase() === norm && c !== EDIT_CAT_OLD);
+  const dupCustom  = (CUSTOM_CATS[EDIT_CAT_TYPE]||[]).find(c => { const n=(typeof c==='string'?c:c.name||''); return n.toLowerCase()===norm && n!==EDIT_CAT_OLD; });
   if (dupDefault || dupCustom) { errEl.textContent = 'Ya existe una categoría con ese nombre.'; return; }
   // Update in custom cats (simple string)
   const arr = CUSTOM_CATS[EDIT_CAT_TYPE] || [];
   const idx = arr.indexOf(EDIT_CAT_OLD);
-  if (idx !== -1) arr[idx] = newName;
+  if (idx !== -1) arr[idx] = { name: newName, ico: _editCatIco || '📌' };
   saveCustomCats();
   // Update transactions
   TXS.forEach(tx => { if (tx.type===EDIT_CAT_TYPE && tx.category===EDIT_CAT_OLD) tx.category = newName; });
